@@ -10,6 +10,8 @@ import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
+import EventRegistration from "./pages/EventRegistration";
+import CreateEvent from "./pages/CreateEvent";
 import OrganizationDashboard from "./pages/OrganizationDashboard";
 import NotFound from "./pages/NotFound";
 
@@ -30,6 +32,8 @@ const App = () => (
               <Route path="/register" element={<Register />} />
               <Route path="/events" element={<Events />} />
               <Route path="/events/:id" element={<EventDetails />} />
+              <Route path="/events/:id/register" element={<EventRegistration />} />
+              <Route path="/events/create" element={<CreateEvent />} />
               <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>

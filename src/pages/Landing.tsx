@@ -1,7 +1,23 @@
 import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 
 const Landing = () => {
+  const highlightedEvents = [
+    {
+      id: 1,
+      title: "Beach Cleanup Drive",
+      organization: "Ocean Care",
+      date: "2024-04-15",
+    },
+    {
+      id: 2,
+      title: "Food Bank Distribution",
+      organization: "Community Helpers",
+      date: "2024-04-20",
+    },
+  ];
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
@@ -22,6 +38,25 @@ const Landing = () => {
                 <Button variant="outline" size="lg">Browse Events</Button>
               </Link>
             </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Highlighted Events Section */}
+      <section className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12">Highlighted Events</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {highlightedEvents.map((event) => (
+              <Card key={event.id} className="p-6">
+                <h3 className="text-xl font-semibold mb-2">{event.title}</h3>
+                <p className="text-gray-600 mb-2">{event.organization}</p>
+                <p className="text-sm text-gray-500 mb-4">📅 {event.date}</p>
+                <Link to={`/events/${event.id}`}>
+                  <Button variant="outline" className="w-full">View Details</Button>
+                </Link>
+              </Card>
+            ))}
           </div>
         </div>
       </section>
