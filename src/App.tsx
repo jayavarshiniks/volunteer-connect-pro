@@ -8,6 +8,9 @@ import { Footer } from "./components/layout/Footer";
 import Landing from "./pages/Landing";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import Events from "./pages/Events";
+import EventDetails from "./pages/EventDetails";
+import OrganizationDashboard from "./pages/OrganizationDashboard";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -25,6 +28,9 @@ const App = () => (
               <Route path="/" element={<Landing />} />
               <Route path="/login" element={<Login />} />
               <Route path="/register" element={<Register />} />
+              <Route path="/events" element={<Events />} />
+              <Route path="/events/:id" element={<EventDetails />} />
+              <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
               <Route path="*" element={<NotFound />} />
             </Routes>
           </main>

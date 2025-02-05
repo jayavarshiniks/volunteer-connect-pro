@@ -11,8 +11,6 @@ export const Navbar = () => {
           </Link>
           <div className="hidden md:flex items-center space-x-4">
             <Link to="/events" className="text-gray-600 hover:text-gray-900">Events</Link>
-            <Link to="/about" className="text-gray-600 hover:text-gray-900">About</Link>
-            <Link to="/contact" className="text-gray-600 hover:text-gray-900">Contact</Link>
           </div>
           <div className="flex items-center space-x-4">
             <Link to="/login">
