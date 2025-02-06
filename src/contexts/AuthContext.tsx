@@ -52,12 +52,20 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("No user data returned");
 
+      // Sign in immediately after signup
+      const { error: signInError } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+
+      if (signInError) throw signInError;
+
       // Wait for the trigger to create the profile
       await new Promise(resolve => setTimeout(resolve, 1500));
 
       const profile = await getUserProfile(signUpData.user.id);
       
-      toast.success("Account created successfully!");
+      toast.success("Account created and logged in successfully!");
       handleAuthNavigation(profile?.role as UserRole, navigate);
     } catch (error: any) {
       handleAuthError(error);

@@ -67,7 +67,7 @@ const Events = () => {
 
   const handleRegisterClick = (eventId: number) => {
     if (!user) {
-      toast.error("Please login or sign up to register for events");
+      toast.error("Please login to register for events");
       return;
     }
     // Handle event registration logic here
@@ -106,9 +106,11 @@ const Events = () => {
                   <Link to={`/events/${event.id}`}>
                     <Button variant="outline">View Details</Button>
                   </Link>
-                  <Button onClick={() => handleRegisterClick(event.id)}>
-                    Register
-                  </Button>
+                  {user && (
+                    <Button onClick={() => handleRegisterClick(event.id)}>
+                      Register
+                    </Button>
+                  )}
                 </div>
               </div>
             </Card>
