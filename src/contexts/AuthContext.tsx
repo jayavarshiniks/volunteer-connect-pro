@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string, role: "volunteer" | "organization") => {
     try {
-      const { error: signUpError } = await supabase.auth.signUp({
+      const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -49,21 +49,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       });
 
       if (signUpError) throw signUpError;
+      if (!signUpData.user) throw new Error("No user data returned");
+
+      // Wait a moment for the trigger to create the profile
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // Get the user's profile to check their role
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .eq('id', user?.id)
+        .eq('id', signUpData.user.id)
         .maybeSingle();
 
       if (profileError) throw profileError;
 
       toast.success("Account created successfully!");
+      
       // Navigate based on role
       if (profile?.role === "volunteer") {
         navigate("/events");
-      } else {
+      } else if (profile?.role === "organization") {
         navigate("/organization/dashboard");
       }
     } catch (error: any) {
@@ -73,27 +78,29 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) throw signInError;
+      if (!signInData.user) throw new Error("No user data returned");
 
       // Get the user's profile to check their role
       const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .eq('id', user?.id)
+        .eq('id', signInData.user.id)
         .maybeSingle();
 
       if (profileError) throw profileError;
 
       toast.success("Logged in successfully!");
+      
       // Navigate based on role
       if (profile?.role === "volunteer") {
         navigate("/events");
-      } else {
+      } else if (profile?.role === "organization") {
         navigate("/organization/dashboard");
       }
     } catch (error: any) {
