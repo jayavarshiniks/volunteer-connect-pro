@@ -38,7 +38,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signUp = async (email: string, password: string, role: "volunteer" | "organization") => {
     try {
-      const { error } = await supabase.auth.signUp({
+      const { error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
@@ -48,22 +48,23 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         },
       });
 
-      if (error) throw error;
+      if (signUpError) throw signUpError;
 
       // Get the user's profile to check their role
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .single();
+        .eq('id', user?.id)
+        .maybeSingle();
 
-      if (profile) {
-        toast.success("Account created successfully!");
-        // Navigate based on role
-        if (profile.role === "volunteer") {
-          navigate("/events");
-        } else {
-          navigate("/organization/dashboard");
-        }
+      if (profileError) throw profileError;
+
+      toast.success("Account created successfully!");
+      // Navigate based on role
+      if (profile?.role === "volunteer") {
+        navigate("/events");
+      } else {
+        navigate("/organization/dashboard");
       }
     } catch (error: any) {
       toast.error(error.message);
@@ -72,27 +73,28 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   const signIn = async (email: string, password: string) => {
     try {
-      const { error } = await supabase.auth.signInWithPassword({
+      const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
-      if (error) throw error;
+      if (signInError) throw signInError;
 
       // Get the user's profile to check their role
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from("profiles")
         .select("role")
-        .single();
+        .eq('id', user?.id)
+        .maybeSingle();
 
-      if (profile) {
-        toast.success("Logged in successfully!");
-        // Navigate based on role
-        if (profile.role === "volunteer") {
-          navigate("/events");
-        } else {
-          navigate("/organization/dashboard");
-        }
+      if (profileError) throw profileError;
+
+      toast.success("Logged in successfully!");
+      // Navigate based on role
+      if (profile?.role === "volunteer") {
+        navigate("/events");
+      } else {
+        navigate("/organization/dashboard");
       }
     } catch (error: any) {
       toast.error(error.message);
