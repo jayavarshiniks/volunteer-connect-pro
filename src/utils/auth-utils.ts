@@ -11,24 +11,36 @@ export const getUserProfile = async (userId: string) => {
     .eq("id", userId)
     .maybeSingle();
 
-  if (error) throw error;
+  if (error) {
+    console.error("Error fetching user profile:", error);
+    throw error;
+  }
   return profile;
 };
 
-export const handleAuthNavigation = (role: UserRole | null, navigate: (path: string) => void) => {
-  switch (role) {
-    case "organization":
-      navigate("/organization/dashboard");
-      break;
-    case "volunteer":
-      navigate("/events");
-      break;
-    default:
-      navigate("/login");
+export const handleAuthNavigation = async (userId: string, navigate: (path: string) => void) => {
+  try {
+    const profile = await getUserProfile(userId);
+    const role = profile?.role as UserRole;
+
+    switch (role) {
+      case "organization":
+        navigate("/organization/dashboard");
+        break;
+      case "volunteer":
+        navigate("/events");
+        break;
+      default:
+        console.error("Unknown user role:", role);
+        navigate("/login");
+    }
+  } catch (error) {
+    console.error("Navigation error:", error);
+    navigate("/login");
   }
 };
 
 export const handleAuthError = (error: any) => {
   console.error("Auth error:", error);
-  toast.error(error.message);
+  toast.error(error.message || "An authentication error occurred");
 };

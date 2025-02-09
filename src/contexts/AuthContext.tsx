@@ -1,3 +1,4 @@
+
 import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -20,22 +21,26 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Check active sessions
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        handleAuthNavigation(session.user.id, navigate);
+      }
     });
 
-    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
+      if (session?.user) {
+        handleAuthNavigation(session.user.id, navigate);
+      }
     });
 
     return () => subscription.unsubscribe();
-  }, []);
+  }, [navigate]);
 
   const signUp = async (email: string, password: string, role: UserRole) => {
     try {
@@ -52,7 +57,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("No user data returned");
 
-      // Sign in immediately after signup
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -60,13 +64,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (signInError) throw signInError;
 
-      // Wait for the trigger to create the profile
       await new Promise(resolve => setTimeout(resolve, 1500));
-
-      const profile = await getUserProfile(signUpData.user.id);
       
-      toast.success("Account created and logged in successfully!");
-      handleAuthNavigation(profile?.role as UserRole, navigate);
+      if (signUpData.user.id) {
+        handleAuthNavigation(signUpData.user.id, navigate);
+        toast.success("Account created and logged in successfully!");
+      }
     } catch (error: any) {
       handleAuthError(error);
     }
@@ -82,10 +85,10 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (signInError) throw signInError;
       if (!signInData.user) throw new Error("No user data returned");
 
-      const profile = await getUserProfile(signInData.user.id);
-
       toast.success("Logged in successfully!");
-      handleAuthNavigation(profile?.role as UserRole, navigate);
+      if (signInData.user.id) {
+        handleAuthNavigation(signInData.user.id, navigate);
+      }
     } catch (error: any) {
       handleAuthError(error);
     }
