@@ -1,3 +1,4 @@
+
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -15,12 +16,15 @@ export const getUserProfile = async (userId: string) => {
 };
 
 export const handleAuthNavigation = (role: UserRole | null, navigate: (path: string) => void) => {
-  if (role === "volunteer") {
-    navigate("/events");
-  } else if (role === "organization") {
-    navigate("/organization/dashboard");
-  } else {
-    navigate("/login");
+  switch (role) {
+    case "organization":
+      navigate("/organization/dashboard");
+      break;
+    case "volunteer":
+      navigate("/events");
+      break;
+    default:
+      navigate("/login");
   }
 };
 
