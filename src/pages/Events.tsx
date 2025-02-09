@@ -1,13 +1,15 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 
 const Events = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
 
   // Mock events data (replace with real data later)
@@ -68,9 +70,10 @@ const Events = () => {
   const handleRegisterClick = (eventId: number) => {
     if (!user) {
       toast.error("Please login to register for events");
+      navigate("/login");
       return;
     }
-    // Handle event registration logic here
+    navigate(`/events/${eventId}/register`);
   };
 
   return (
@@ -78,7 +81,6 @@ const Events = () => {
       <div className="flex flex-col space-y-6">
         <h1 className="text-3xl font-bold">Volunteer Events</h1>
         
-        {/* Search Bar */}
         <div className="w-full max-w-md">
           <Input
             type="text"
@@ -89,7 +91,6 @@ const Events = () => {
           />
         </div>
 
-        {/* Events Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map((event) => (
             <Card key={event.id} className="p-6">
@@ -103,9 +104,12 @@ const Events = () => {
                   {event.volunteersNeeded} volunteers needed
                 </span>
                 <div className="space-x-2">
-                  <Link to={`/events/${event.id}`}>
-                    <Button variant="outline">View Details</Button>
-                  </Link>
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate(`/events/${event.id}`)}
+                  >
+                    View Details
+                  </Button>
                   {user && (
                     <Button onClick={() => handleRegisterClick(event.id)}>
                       Register

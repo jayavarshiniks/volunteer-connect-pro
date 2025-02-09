@@ -15,6 +15,12 @@ export const getUserProfile = async (userId: string) => {
     console.error("Error fetching user profile:", error);
     throw error;
   }
+
+  if (!profile) {
+    console.error("No profile found for user:", userId);
+    throw new Error("No profile found");
+  }
+
   return profile;
 };
 
@@ -22,6 +28,7 @@ export const handleAuthNavigation = async (userId: string, navigate: (path: stri
   try {
     const profile = await getUserProfile(userId);
     const role = profile?.role as UserRole;
+    console.log("User role:", role); // Debug log
 
     switch (role) {
       case "organization":
@@ -32,10 +39,12 @@ export const handleAuthNavigation = async (userId: string, navigate: (path: stri
         break;
       default:
         console.error("Unknown user role:", role);
+        toast.error("Invalid user role");
         navigate("/login");
     }
   } catch (error) {
     console.error("Navigation error:", error);
+    toast.error("Error determining user role");
     navigate("/login");
   }
 };
