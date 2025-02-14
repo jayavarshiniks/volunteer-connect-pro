@@ -65,6 +65,10 @@ const Events = () => {
     event.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  const handleViewDetails = (eventId: number) => {
+    navigate(`/events/${eventId}`);
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col space-y-6">
@@ -94,7 +98,7 @@ const Events = () => {
                 </span>
                 <Button 
                   variant="outline" 
-                  onClick={() => navigate(`/events/${event.id}`)}
+                  onClick={() => handleViewDetails(event.id)}
                 >
                   View Details
                 </Button>

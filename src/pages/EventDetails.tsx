@@ -1,10 +1,14 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useParams, useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const EventDetails = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   // Mock event data (replace with real data later)
   const event = {
@@ -19,6 +23,11 @@ const EventDetails = () => {
   };
 
   const handleRegister = () => {
+    if (!user) {
+      toast.error("Please login to register for events");
+      navigate("/login");
+      return;
+    }
     navigate(`/events/${id}/register`);
   };
 
