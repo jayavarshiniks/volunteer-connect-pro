@@ -19,20 +19,13 @@ export const Navbar = () => {
     navigate("/");
   };
 
-  const handleHomeClick = () => {
-    navigate("/");
-  };
-
   return (
     <nav className="border-b">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <button 
-            onClick={handleHomeClick}
-            className="flex items-center hover:opacity-80 transition-opacity"
-          >
+          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
             <span className="text-2xl font-bold text-primary">Volunteer Connect</span>
-          </button>
+          </Link>
           <div className="hidden md:flex items-center space-x-4">
             <Link to="/events" className="text-gray-600 hover:text-gray-900">Events</Link>
           </div>

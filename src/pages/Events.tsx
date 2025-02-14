@@ -1,11 +1,9 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Link, useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { toast } from "sonner";
 
 const Events = () => {
   const { user } = useAuth();
@@ -67,15 +65,6 @@ const Events = () => {
     event.location.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const handleRegisterClick = (eventId: number) => {
-    if (!user) {
-      toast.error("Please login to register for events");
-      navigate("/login");
-      return;
-    }
-    navigate(`/events/${eventId}/register`);
-  };
-
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col space-y-6">
@@ -103,19 +92,12 @@ const Events = () => {
                 <span className="text-sm text-gray-600">
                   {event.volunteersNeeded} volunteers needed
                 </span>
-                <div className="space-x-2">
-                  <Button 
-                    variant="outline" 
-                    onClick={() => navigate(`/events/${event.id}`)}
-                  >
-                    View Details
-                  </Button>
-                  {user && (
-                    <Button onClick={() => handleRegisterClick(event.id)}>
-                      Register
-                    </Button>
-                  )}
-                </div>
+                <Button 
+                  variant="outline" 
+                  onClick={() => navigate(`/events/${event.id}`)}
+                >
+                  View Details
+                </Button>
               </div>
             </Card>
           ))}
