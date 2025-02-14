@@ -67,8 +67,7 @@ const Events = () => {
   );
 
   const handleViewDetails = (eventId: number) => {
-    // Force navigation to the event details page
-    window.location.href = `/events/${eventId}`;
+    navigate(`/events/${eventId}`, { replace: false });
   };
 
   return (
