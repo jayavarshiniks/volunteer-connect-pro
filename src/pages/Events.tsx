@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -66,7 +67,8 @@ const Events = () => {
   );
 
   const handleViewDetails = (eventId: number) => {
-    navigate(`/events/${eventId}`);
+    // Force navigation to the event details page
+    window.location.href = `/events/${eventId}`;
   };
 
   return (
