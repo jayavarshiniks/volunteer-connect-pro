@@ -67,7 +67,8 @@ const Events = () => {
   );
 
   const handleViewDetails = (eventId: number) => {
-    navigate(`/events/${eventId}`, { replace: false });
+    // Use navigate without replace to allow back navigation
+    navigate(`/events/${eventId}`);
   };
 
   return (
