@@ -143,7 +143,7 @@ const Landing = () => {
             <h2 className="text-3xl font-bold text-white mb-6">Ready to Make an Impact?</h2>
             <p className="text-xl text-white/80 mb-8">Join thousands of volunteers creating positive change.</p>
             <Link to="/register">
-              <Button size="lg" variant="secondary" className="bg-indigo-950 hover:bg-indigo-800 text-neutral-50">Become an Organizer Now</Button>
+              <Button size="lg" variant="secondary" className="text-neutral-50 bg-primary-500 hover:bg-primary-400">Become an Organizer Now</Button>
             </Link>
           </div>
         </div>
