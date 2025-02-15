@@ -61,10 +61,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (signInError) throw signInError;
 
+      // Wait for the profile to be created
       await new Promise(resolve => setTimeout(resolve, 1500));
       
       if (signUpData.user.id) {
-        handleAuthNavigation(signUpData.user.id, navigate);
+        // Navigate based on role
+        if (role === 'volunteer') {
+          navigate('/events');
+        } else if (role === 'organization') {
+          navigate('/organization/dashboard');
+        }
         toast.success("Account created and logged in successfully!");
       }
     } catch (error: any) {
@@ -81,6 +87,18 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
       if (signInError) throw signInError;
       if (!signInData.user) throw new Error("No user data returned");
+
+      // Get user profile and navigate based on role
+      if (signInData.user.id) {
+        const profile = await getUserProfile(signInData.user.id);
+        const userRole = profile?.role as UserRole;
+        
+        if (userRole === 'volunteer') {
+          navigate('/events');
+        } else if (userRole === 'organization') {
+          navigate('/organization/dashboard');
+        }
+      }
 
       toast.success("Logged in successfully!");
     } catch (error: any) {
