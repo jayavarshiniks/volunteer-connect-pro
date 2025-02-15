@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getUserProfile, handleAuthError, UserRole } from "@/utils/auth-utils";
+import { handleAuthError, UserRole } from "@/utils/auth-utils";
 
 type AuthContextType = {
   user: any;
@@ -46,20 +46,13 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         password,
         options: {
           data: {
-            role: role,
+            role: role, // This role will be stored in user metadata
           },
         },
       });
 
       if (signUpError) throw signUpError;
       if (!signUpData.user) throw new Error("No user data returned");
-
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) throw signInError;
 
       // Wait for the profile to be created
       await new Promise(resolve => setTimeout(resolve, 1500));
@@ -71,7 +64,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         } else if (role === 'organization') {
           navigate('/organization/dashboard');
         }
-        toast.success("Account created and logged in successfully!");
+        toast.success("Account created successfully! Please check your email for verification.");
       }
     } catch (error: any) {
       handleAuthError(error);
@@ -88,23 +81,30 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (signInError) throw signInError;
       if (!signInData.user) throw new Error("No user data returned");
 
-      // Get user profile and navigate based on role
-      if (signInData.user.id) {
-        const profile = await getUserProfile(signInData.user.id);
-        const userRole = profile?.role as UserRole;
-        
-        // Navigate based on user role
-        if (userRole === 'volunteer') {
-          navigate('/events', { replace: true });
-        } else if (userRole === 'organization') {
-          navigate('/organization/dashboard', { replace: true });
-        } else {
-          console.error("Unknown user role:", userRole);
-          toast.error("Invalid user role");
-          navigate('/login');
-        }
-        
-        toast.success("Logged in successfully!");
+      // Fetch the user's role from the profiles table
+      const { data: profileData, error: profileError } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', signInData.user.id)
+        .single();
+
+      if (profileError) throw profileError;
+      if (!profileData) throw new Error("No profile found");
+
+      const userRole = profileData.role as UserRole;
+      console.log("User role from profile:", userRole); // Debugging
+
+      // Navigate based on role
+      if (userRole === 'volunteer') {
+        navigate('/events', { replace: true });
+        toast.success("Welcome back, volunteer!");
+      } else if (userRole === 'organization') {
+        navigate('/organization/dashboard', { replace: true });
+        toast.success("Welcome back, organization!");
+      } else {
+        console.error("Invalid user role:", userRole);
+        toast.error("Invalid user role");
+        await signOut(); // Sign out if role is invalid
       }
     } catch (error: any) {
       handleAuthError(error);
