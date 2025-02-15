@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { getUserProfile, handleAuthNavigation, handleAuthError, UserRole } from "@/utils/auth-utils";
+import { getUserProfile, handleAuthError, UserRole } from "@/utils/auth-utils";
 
 type AuthContextType = {
   user: any;
@@ -93,14 +93,19 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
         const profile = await getUserProfile(signInData.user.id);
         const userRole = profile?.role as UserRole;
         
+        // Navigate based on user role
         if (userRole === 'volunteer') {
-          navigate('/events');
+          navigate('/events', { replace: true });
         } else if (userRole === 'organization') {
-          navigate('/organization/dashboard');
+          navigate('/organization/dashboard', { replace: true });
+        } else {
+          console.error("Unknown user role:", userRole);
+          toast.error("Invalid user role");
+          navigate('/login');
         }
+        
+        toast.success("Logged in successfully!");
       }
-
-      toast.success("Logged in successfully!");
     } catch (error: any) {
       handleAuthError(error);
     }
@@ -111,6 +116,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
       navigate("/login");
+      toast.success("Logged out successfully!");
     } catch (error: any) {
       handleAuthError(error);
     }
