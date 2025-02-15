@@ -1,7 +1,7 @@
 import { Link } from "react-router-dom";
 export const Footer = () => {
   return <footer className="bg-gray-50">
-      <div className="container sm:px-6 lg:px-8 py-12 px-[40px] my-0 mx-[36px]">
+      <div className="container sm:px-6 lg:px-8 py-12 my-0 mx-0 px-[2px]">
         <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
           <div>
             <h3 className="text-lg font-semibold mb-4">Volunteer Connect</h3>
