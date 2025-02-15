@@ -1,6 +1,6 @@
 
 import { createContext, useContext, useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { getUserProfile, handleAuthNavigation, handleAuthError, UserRole } from "@/utils/auth-utils";
@@ -19,28 +19,25 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
+    // Initial session check
     supabase.auth.getSession().then(({ data: { session } }) => {
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session?.user) {
-        handleAuthNavigation(session.user.id, navigate);
-      }
     });
 
+    // Listen for auth changes
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null);
       setLoading(false);
-      if (session?.user) {
-        handleAuthNavigation(session.user.id, navigate);
-      }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   const signUp = async (email: string, password: string, role: UserRole) => {
     try {
@@ -86,9 +83,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!signInData.user) throw new Error("No user data returned");
 
       toast.success("Logged in successfully!");
-      if (signInData.user.id) {
-        handleAuthNavigation(signInData.user.id, navigate);
-      }
     } catch (error: any) {
       handleAuthError(error);
     }

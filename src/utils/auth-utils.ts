@@ -28,7 +28,7 @@ export const handleAuthNavigation = async (userId: string, navigate: (path: stri
   try {
     const profile = await getUserProfile(userId);
     const role = profile?.role as UserRole;
-    console.log("User role:", role); // Debug log
+    console.log("User role:", role);
 
     switch (role) {
       case "organization":
