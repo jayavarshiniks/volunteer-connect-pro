@@ -19,8 +19,11 @@ const EventDetails = () => {
     location: "Miami Beach",
     description: "Join us in cleaning up the beach and protecting marine life.",
     volunteersNeeded: 20,
+    currentVolunteers: 8, // Added this field
     requirements: "Bring water, sunscreen, and wear comfortable clothes",
   };
+
+  const spotsRemaining = event.volunteersNeeded - event.currentVolunteers;
 
   const handleRegister = () => {
     if (!user) {
@@ -62,8 +65,21 @@ const EventDetails = () => {
             <p className="text-gray-600">{event.requirements}</p>
           </div>
           <div>
-            <h2 className="text-xl font-semibold mb-2">Volunteers Needed</h2>
-            <p className="text-gray-600">{event.volunteersNeeded} volunteers</p>
+            <h2 className="text-xl font-semibold mb-2">Volunteer Status</h2>
+            <div className="bg-gray-100 p-4 rounded-lg">
+              <p className="text-gray-600">
+                <span className="font-medium">{spotsRemaining}</span> spots remaining
+              </p>
+              <p className="text-sm text-gray-500">
+                {event.currentVolunteers} volunteers registered out of {event.volunteersNeeded} needed
+              </p>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
+                <div 
+                  className="bg-primary h-2.5 rounded-full" 
+                  style={{ width: `${(event.currentVolunteers / event.volunteersNeeded) * 100}%` }}
+                ></div>
+              </div>
+            </div>
           </div>
           <Button onClick={handleRegister} className="w-full">
             Register for Event

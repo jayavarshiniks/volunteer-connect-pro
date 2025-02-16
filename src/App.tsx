@@ -1,4 +1,3 @@
-
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -16,6 +15,7 @@ import EventRegistration from "./pages/EventRegistration";
 import CreateEvent from "./pages/CreateEvent";
 import OrganizationDashboard from "./pages/OrganizationDashboard";
 import NotFound from "./pages/NotFound";
+import RegistrationSuccess from "./pages/RegistrationSuccess";
 
 const queryClient = new QueryClient();
 
@@ -34,6 +34,7 @@ const App = () => (
                 <Route path="/events" element={<Events />} />
                 <Route path="/events/:id" element={<EventDetails />} />
                 <Route path="/events/:id/register" element={<EventRegistration />} />
+                <Route path="/events/:id/registration-success" element={<RegistrationSuccess />} />
                 <Route path="/events/create" element={<CreateEvent />} />
                 <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
                 <Route path="*" element={<NotFound />} />

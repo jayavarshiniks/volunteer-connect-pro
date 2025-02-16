@@ -37,10 +37,10 @@ export const Navbar = () => {
     <nav className="border-b">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16 items-center">
-          <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
+          <Link to="/" className="flex-1 text-center">
             <span className="text-2xl font-bold text-primary">Volunteer Connect</span>
           </Link>
-          <div className="hidden md:flex items-center space-x-6">
+          <div className="hidden md:flex flex-1 items-center justify-center space-x-6">
             <Link to="/events" className="text-gray-600 hover:text-gray-900">Events</Link>
             <button 
               onClick={() => scrollToSection('about')}
@@ -55,7 +55,7 @@ export const Navbar = () => {
               Contact
             </button>
           </div>
-          <div className="flex items-center space-x-4">
+          <div className="flex-1 flex items-center justify-end space-x-4">
             {user ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
