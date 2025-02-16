@@ -75,18 +75,18 @@ const CreateEvent = () => {
       }
 
       const eventData = {
-        title: formData.get('title'),
-        description: formData.get('description'),
-        date: formData.get('date'),
-        time: formData.get('time'),
-        location: formData.get('location'),
+        title: String(formData.get('title')),
+        description: String(formData.get('description')),
+        date: String(formData.get('date')),
+        time: String(formData.get('time')),
+        location: String(formData.get('location')),
         location_lat: coordinates?.lat || null,
         location_lng: coordinates?.lng || null,
-        volunteers_needed: Number(formData.get('volunteers')),
-        requirements: formData.get('requirements'),
+        volunteers_needed: parseInt(String(formData.get('volunteers')), 10),
+        requirements: formData.get('requirements') ? String(formData.get('requirements')) : null,
         image_url: imageUrl,
         organization_id: user.id,
-        organization_contact: formData.get('contact')
+        organization_contact: String(formData.get('contact'))
       };
 
       const { error } = await supabase
