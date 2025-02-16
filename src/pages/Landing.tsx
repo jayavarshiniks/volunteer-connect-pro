@@ -231,8 +231,8 @@ const Landing = () => {
       <section className="py-20 bg-sky-200 hover:bg-sky-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center animate-fade-in">
-            <h2 className="text-3xl font-bold text-white mb-6">Ready to Make an Impact?</h2>
-            <p className="text-xl text-white/80 mb-8">Join thousands of volunteers creating positive change.</p>
+            <h2 className="text-3xl font-bold mb-6 text-blue-950">Ready to Make an Impact?</h2>
+            <p className="text-xl mb-8 text-blue-950">Join thousands of volunteers creating positive change.</p>
             <Link to="/register">
               <Button size="lg" variant="secondary" className="text-neutral-50 bg-primary-500 hover:bg-primary-400 hover-scale">
                 Become an Organizer Now
