@@ -28,7 +28,7 @@ export const Navbar = () => {
     }
   };
   return <nav className="border-b">
-      <div className="container mx-auto px-4 sm:px-6 lg:px-8 bg-sky-200 hover:bg-sky-100">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8 bg-blue-100">
         <div className="flex justify-between h-16 items-center">
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
             <span className="text-2xl font-bold text-primary">Volunteer Connect</span>
