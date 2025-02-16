@@ -2,7 +2,7 @@
 import { useLocation, Link, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import QRCode from 'qrcode.react';
+import { QRCodeSVG } from 'qrcode.react'; // Changed to named import
 import { useEffect } from 'react';
 
 const RegistrationSuccess = () => {
@@ -51,7 +51,7 @@ const RegistrationSuccess = () => {
           <div className="flex flex-col items-center space-y-4">
             <h2 className="text-xl font-semibold">Your Registration QR Code</h2>
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <QRCode value={qrData} size={200} level="H" />
+              <QRCodeSVG value={qrData} size={200} level="H" />
             </div>
             <p className="text-sm text-gray-600">
               Please present this QR code when you arrive at the event.
