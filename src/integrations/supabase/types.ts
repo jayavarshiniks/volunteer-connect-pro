@@ -9,6 +9,71 @@ export type Json =
 export type Database = {
   public: {
     Tables: {
+      events: {
+        Row: {
+          created_at: string
+          current_volunteers: number | null
+          date: string
+          description: string
+          id: string
+          image_url: string | null
+          location: string
+          location_lat: number | null
+          location_lng: number | null
+          organization_contact: string
+          organization_id: string
+          requirements: string | null
+          time: string
+          title: string
+          updated_at: string
+          volunteers_needed: number
+        }
+        Insert: {
+          created_at?: string
+          current_volunteers?: number | null
+          date: string
+          description: string
+          id?: string
+          image_url?: string | null
+          location: string
+          location_lat?: number | null
+          location_lng?: number | null
+          organization_contact: string
+          organization_id: string
+          requirements?: string | null
+          time: string
+          title: string
+          updated_at?: string
+          volunteers_needed: number
+        }
+        Update: {
+          created_at?: string
+          current_volunteers?: number | null
+          date?: string
+          description?: string
+          id?: string
+          image_url?: string | null
+          location?: string
+          location_lat?: number | null
+          location_lng?: number | null
+          organization_contact?: string
+          organization_id?: string
+          requirements?: string | null
+          time?: string
+          title?: string
+          updated_at?: string
+          volunteers_needed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "events_organization_id_fkey"
+            columns: ["organization_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string

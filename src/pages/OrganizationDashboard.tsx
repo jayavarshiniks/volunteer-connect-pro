@@ -1,32 +1,40 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
+import { format } from "date-fns";
 
 const OrganizationDashboard = () => {
-  // Mock data (replace with real data later)
+  const { user } = useAuth();
+
+  const { data: events, isLoading } = useQuery({
+    queryKey: ['organization-events', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('organization_id', user?.id)
+        .order('date', { ascending: true });
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
+  });
+
   const stats = {
-    totalEvents: 12,
-    activeEvents: 5,
-    totalVolunteers: 150,
-    completedEvents: 7,
+    totalEvents: events?.length || 0,
+    activeEvents: events?.filter(event => new Date(event.date) >= new Date()).length || 0,
+    totalVolunteers: events?.reduce((acc, event) => acc + event.current_volunteers, 0) || 0,
+    completedEvents: events?.filter(event => new Date(event.date) < new Date()).length || 0,
   };
 
-  const recentEvents = [
-    {
-      id: 1,
-      title: "Beach Cleanup Drive",
-      date: "2024-04-15",
-      registeredVolunteers: 15,
-      status: "Active",
-    },
-    {
-      id: 2,
-      title: "Food Bank Distribution",
-      date: "2024-04-20",
-      registeredVolunteers: 10,
-      status: "Active",
-    },
-  ];
+  if (isLoading) {
+    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -56,22 +64,40 @@ const OrganizationDashboard = () => {
         </Card>
       </div>
 
-      <h2 className="text-2xl font-bold mb-4">Recent Events</h2>
+      <h2 className="text-2xl font-bold mb-4">Your Events</h2>
       <div className="grid gap-4">
-        {recentEvents.map((event) => (
+        {events?.map((event) => (
           <Card key={event.id} className="p-6">
-            <div className="flex justify-between items-center">
-              <div>
-                <h3 className="text-xl font-semibold">{event.title}</h3>
-                <p className="text-gray-600">Date: {event.date}</p>
-              </div>
-              <div className="text-right">
-                <p className="text-sm text-gray-600">
-                  {event.registeredVolunteers} volunteers registered
-                </p>
-                <span className="inline-block px-3 py-1 rounded-full text-sm bg-green-100 text-green-800">
-                  {event.status}
-                </span>
+            <div className="flex gap-4">
+              {event.image_url && (
+                <img 
+                  src={event.image_url} 
+                  alt={event.title}
+                  className="w-32 h-32 object-cover rounded-lg"
+                />
+              )}
+              <div className="flex-1">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h3 className="text-xl font-semibold">{event.title}</h3>
+                    <p className="text-gray-600">
+                      Date: {format(new Date(event.date), 'PPP')} at {event.time}
+                    </p>
+                    <p className="text-gray-600">Location: {event.location}</p>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm text-gray-600">
+                      {event.current_volunteers} / {event.volunteers_needed} volunteers
+                    </p>
+                    <span className={`inline-block px-3 py-1 rounded-full text-sm ${
+                      new Date(event.date) >= new Date() 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {new Date(event.date) >= new Date() ? 'Active' : 'Completed'}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </Card>
