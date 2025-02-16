@@ -1,3 +1,4 @@
+
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -20,13 +21,13 @@ import RegistrationSuccess from "./pages/RegistrationSuccess";
 const queryClient = new QueryClient();
 
 const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <BrowserRouter>
-        <AuthProvider>
-          <div className="flex flex-col min-h-screen">
-            <Navbar />
-            <main className="flex-grow">
+  <BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <div className="flex flex-col min-h-screen">
+          <Navbar />
+          <main className="flex-grow">
+            <TooltipProvider>
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
@@ -39,15 +40,15 @@ const App = () => (
                 <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
-            </main>
-            <Footer />
-          </div>
-          <Toaster />
-          <Sonner />
-        </AuthProvider>
-      </BrowserRouter>
-    </TooltipProvider>
-  </QueryClientProvider>
+            </TooltipProvider>
+          </main>
+          <Footer />
+        </div>
+        <Toaster />
+        <Sonner />
+      </AuthProvider>
+    </QueryClientProvider>
+  </BrowserRouter>
 );
 
 export default App;
