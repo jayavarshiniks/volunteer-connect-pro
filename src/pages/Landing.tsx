@@ -160,25 +160,81 @@ const Landing = () => {
       {/* Contact Section */}
       <section id="contact" className="py-20 bg-gray-50">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-12 animate-fade-in">Contact Us</h2>
-          <div className="max-w-2xl mx-auto">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-[fade-in_0.4s_ease-out]">
-              <div className="text-center md:text-left">
-                <h3 className="text-xl font-semibold mb-4">Get in Touch</h3>
-                <p className="text-gray-600 mb-4">Have questions or suggestions? We'd love to hear from you.</p>
-                <div className="space-y-2">
-                  <p className="text-gray-600"><strong>Email:</strong> info@volunteerconnect.com</p>
-                  <p className="text-gray-600"><strong>Phone:</strong> (555) 123-4567</p>
-                  <p className="text-gray-600"><strong>Address:</strong> 123 Volunteer Street, Community City, ST 12345</p>
+          <h2 className="text-3xl font-bold text-center mb-8 animate-fade-in">Let's Collaborate</h2>
+          <p className="text-xl text-gray-600 text-center mb-12 max-w-2xl mx-auto animate-[fade-in_0.4s_ease-out]">
+            Whether you have questions, ideas for collaboration, or want to make a bigger impact together, we'd love to hear from you.
+          </p>
+          <div className="max-w-3xl mx-auto bg-white rounded-lg shadow-md p-8 animate-[fade-in_0.6s_ease-out]">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+              {/* Contact Form */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold mb-4">Send us a Message</h3>
+                <div className="space-y-4">
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Your name"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Your email"
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Message</label>
+                    <textarea
+                      id="message"
+                      rows={4}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                      placeholder="Tell us about your ideas or questions"
+                    ></textarea>
+                  </div>
+                  <Button className="w-full">Send Message</Button>
                 </div>
               </div>
-              <div className="text-center md:text-left">
-                <h3 className="text-xl font-semibold mb-4">Office Hours</h3>
-                <p className="text-gray-600 mb-4">We're here to help during these hours:</p>
-                <div className="space-y-2">
-                  <p className="text-gray-600"><strong>Monday-Friday:</strong> 9:00 AM - 6:00 PM</p>
-                  <p className="text-gray-600"><strong>Saturday:</strong> 10:00 AM - 4:00 PM</p>
-                  <p className="text-gray-600"><strong>Sunday:</strong> Closed</p>
+
+              {/* Contact Information */}
+              <div className="space-y-6">
+                <h3 className="text-xl font-semibold mb-4">Other Ways to Connect</h3>
+                <div className="space-y-4">
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-6 h-6 text-primary-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <h4 className="font-medium">Email Us</h4>
+                      <p className="text-gray-600">partnerships@volunteerconnect.com</p>
+                      <p className="text-sm text-gray-500">For collaboration and partnership inquiries</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-6 h-6 text-primary-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z" />
+                    </svg>
+                    <div>
+                      <h4 className="font-medium">General Inquiries</h4>
+                      <p className="text-gray-600">support@volunteerconnect.com</p>
+                      <p className="text-sm text-gray-500">For general questions and support</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start space-x-3">
+                    <svg className="w-6 h-6 text-primary-600 mt-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
+                    </svg>
+                    <div>
+                      <h4 className="font-medium">Organizations</h4>
+                      <p className="text-gray-600">organizations@volunteerconnect.com</p>
+                      <p className="text-sm text-gray-500">For NGOs and organizations looking to join</p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
