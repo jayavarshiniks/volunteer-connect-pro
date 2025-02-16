@@ -1,6 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
+import { useEffect } from "react";
+
 const Landing = () => {
   const highlightedEvents = [{
     id: 1,
@@ -32,23 +34,42 @@ const Landing = () => {
     content: "The experience of volunteering has been transformative. Highly recommend!",
     rating: 5
   }];
+
+  // Smooth scroll function
+  const scrollToSection = (id: string) => {
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
+  };
+
+  // Handle hash changes for direct links
+  useEffect(() => {
+    if (window.location.hash) {
+      const id = window.location.hash.replace('#', '');
+      setTimeout(() => {
+        scrollToSection(id);
+      }, 100);
+    }
+  }, []);
+
   return <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary-50 to-secondary-50 py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center">
-            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6">
+            <h1 className="text-4xl md:text-6xl font-bold text-gray-900 mb-6 animate-fade-in">
               Make a Difference in Your Community
             </h1>
-            <p className="text-xl text-gray-600 mb-8">
+            <p className="text-xl text-gray-600 mb-8 animate-[fade-in_0.6s_ease-out]">
               Connect with meaningful volunteer opportunities and create positive change.
             </p>
-            <div className="flex justify-center gap-4">
+            <div className="flex justify-center gap-4 animate-[fade-in_0.8s_ease-out]">
               <Link to="/register">
-                <Button size="lg">Become an Organizer</Button>
+                <Button size="lg" className="hover-scale">Become an Organizer</Button>
               </Link>
               <Link to="/events">
-                <Button variant="outline" size="lg">Browse Events</Button>
+                <Button variant="outline" size="lg" className="hover-scale">Browse Events</Button>
               </Link>
             </div>
           </div>
@@ -56,11 +77,11 @@ const Landing = () => {
       </section>
 
       {/* About Us Section */}
-      <section className="py-20 bg-white">
+      <section id="about" className="py-20 bg-white">
         <div className="container mx-auto px-4">
-          <h2 className="text-3xl font-bold text-center mb-8">About Us</h2>
+          <h2 className="text-3xl font-bold text-center mb-8 animate-fade-in">About Us</h2>
           <div className="max-w-3xl mx-auto text-center">
-            <p className="text-lg text-gray-600 mb-6">
+            <p className="text-lg text-gray-600 mb-6 animate-[fade-in_0.4s_ease-out]">
               We are dedicated to connecting passionate volunteers with organizations making real impact in communities. Our platform makes it easy for people to find meaningful volunteer opportunities and for organizations to find dedicated helpers.
             </p>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-12">
@@ -136,14 +157,45 @@ const Landing = () => {
         </div>
       </section>
 
+      {/* Contact Section */}
+      <section id="contact" className="py-20 bg-gray-50">
+        <div className="container mx-auto px-4">
+          <h2 className="text-3xl font-bold text-center mb-12 animate-fade-in">Contact Us</h2>
+          <div className="max-w-2xl mx-auto">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 animate-[fade-in_0.4s_ease-out]">
+              <div className="text-center md:text-left">
+                <h3 className="text-xl font-semibold mb-4">Get in Touch</h3>
+                <p className="text-gray-600 mb-4">Have questions or suggestions? We'd love to hear from you.</p>
+                <div className="space-y-2">
+                  <p className="text-gray-600"><strong>Email:</strong> info@volunteerconnect.com</p>
+                  <p className="text-gray-600"><strong>Phone:</strong> (555) 123-4567</p>
+                  <p className="text-gray-600"><strong>Address:</strong> 123 Volunteer Street, Community City, ST 12345</p>
+                </div>
+              </div>
+              <div className="text-center md:text-left">
+                <h3 className="text-xl font-semibold mb-4">Office Hours</h3>
+                <p className="text-gray-600 mb-4">We're here to help during these hours:</p>
+                <div className="space-y-2">
+                  <p className="text-gray-600"><strong>Monday-Friday:</strong> 9:00 AM - 6:00 PM</p>
+                  <p className="text-gray-600"><strong>Saturday:</strong> 10:00 AM - 4:00 PM</p>
+                  <p className="text-gray-600"><strong>Sunday:</strong> Closed</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* CTA Section */}
       <section className="bg-primary-600 py-20">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="text-center">
+          <div className="text-center animate-fade-in">
             <h2 className="text-3xl font-bold text-white mb-6">Ready to Make an Impact?</h2>
             <p className="text-xl text-white/80 mb-8">Join thousands of volunteers creating positive change.</p>
             <Link to="/register">
-              <Button size="lg" variant="secondary" className="text-neutral-50 bg-primary-500 hover:bg-primary-400">Become an Organizer Now</Button>
+              <Button size="lg" variant="secondary" className="text-neutral-50 bg-primary-500 hover:bg-primary-400 hover-scale">
+                Become an Organizer Now
+              </Button>
             </Link>
           </div>
         </div>

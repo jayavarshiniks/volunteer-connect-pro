@@ -1,6 +1,6 @@
 
 import { Button } from "@/components/ui/button";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { 
   DropdownMenu,
@@ -13,10 +13,24 @@ import { UserRound, LogOut } from "lucide-react";
 export const Navbar = () => {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const scrollToSection = (id: string) => {
+    // If we're not on the landing page, navigate there first
+    if (location.pathname !== '/') {
+      navigate('/#' + id);
+      return;
+    }
+    
+    const element = document.getElementById(id);
+    if (element) {
+      element.scrollIntoView({ behavior: 'smooth' });
+    }
   };
 
   return (
@@ -26,8 +40,20 @@ export const Navbar = () => {
           <Link to="/" className="flex items-center hover:opacity-80 transition-opacity">
             <span className="text-2xl font-bold text-primary">Volunteer Connect</span>
           </Link>
-          <div className="hidden md:flex items-center space-x-4">
+          <div className="hidden md:flex items-center space-x-6">
             <Link to="/events" className="text-gray-600 hover:text-gray-900">Events</Link>
+            <button 
+              onClick={() => scrollToSection('about')}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              About Us
+            </button>
+            <button 
+              onClick={() => scrollToSection('contact')}
+              className="text-gray-600 hover:text-gray-900"
+            >
+              Contact
+            </button>
           </div>
           <div className="flex items-center space-x-4">
             {user ? (
