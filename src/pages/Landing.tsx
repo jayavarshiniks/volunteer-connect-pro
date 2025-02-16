@@ -2,7 +2,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link } from "react-router-dom";
 import { useEffect } from "react";
-
 const Landing = () => {
   const highlightedEvents = [{
     id: 1,
@@ -39,7 +38,9 @@ const Landing = () => {
   const scrollToSection = (id: string) => {
     const element = document.getElementById(id);
     if (element) {
-      element.scrollIntoView({ behavior: 'smooth' });
+      element.scrollIntoView({
+        behavior: 'smooth'
+      });
     }
   };
 
@@ -52,7 +53,6 @@ const Landing = () => {
       }, 100);
     }
   }, []);
-
   return <div className="min-h-screen">
       {/* Hero Section */}
       <section className="bg-gradient-to-r from-primary-50 to-secondary-50 py-20">
@@ -172,30 +172,15 @@ const Landing = () => {
                 <div className="space-y-4">
                   <div>
                     <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">Name</label>
-                    <input
-                      type="text"
-                      id="name"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="Your name"
-                    />
+                    <input type="text" id="name" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder="Your name" />
                   </div>
                   <div>
                     <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
-                    <input
-                      type="email"
-                      id="email"
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="Your email"
-                    />
+                    <input type="email" id="email" className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder="Your email" />
                   </div>
                   <div>
                     <label htmlFor="message" className="block text-sm font-medium text-gray-700 mb-1">Message</label>
-                    <textarea
-                      id="message"
-                      rows={4}
-                      className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
-                      placeholder="Tell us about your ideas or questions"
-                    ></textarea>
+                    <textarea id="message" rows={4} className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500" placeholder="Tell us about your ideas or questions"></textarea>
                   </div>
                   <Button className="w-full">Send Message</Button>
                 </div>
@@ -243,7 +228,7 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="bg-primary-600 py-20">
+      <section className="py-20 bg-sky-200 hover:bg-sky-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center animate-fade-in">
             <h2 className="text-3xl font-bold text-white mb-6">Ready to Make an Impact?</h2>
