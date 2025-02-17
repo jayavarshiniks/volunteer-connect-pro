@@ -1,30 +1,54 @@
 
-import { useLocation, Link, useNavigate } from 'react-router-dom';
+import { useLocation, Link, useParams, useNavigate } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { QRCodeSVG } from 'qrcode.react'; // Changed to named import
+import { QRCodeSVG } from 'qrcode.react';
 import { useEffect } from 'react';
+import { useQuery } from "@tanstack/react-query";
+import { supabase } from "@/integrations/supabase/client";
 
 const RegistrationSuccess = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const { id: eventId } = useParams();
   const registrationData = location.state?.registrationData;
 
+  // If this is being accessed via QR code scan, try to get registration data from URL params
+  const qrData = location.search ? JSON.parse(decodeURIComponent(location.search.slice(1))) : null;
+  const displayData = registrationData || qrData;
+
+  const { data: event } = useQuery({
+    queryKey: ['event', eventId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('events')
+        .select('*')
+        .eq('id', eventId)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!eventId
+  });
+
   useEffect(() => {
-    if (!registrationData) {
+    if (!displayData) {
       navigate('/events');
     }
-  }, [registrationData, navigate]);
+  }, [displayData, navigate]);
 
-  if (!registrationData) {
+  if (!displayData) {
     return null;
   }
 
-  const qrData = JSON.stringify({
-    registrationId: registrationData.registrationId,
-    eventId: registrationData.eventId,
-    name: registrationData.name,
-    email: registrationData.email,
+  const qrValue = JSON.stringify({
+    registrationId: displayData.registrationId,
+    eventId: displayData.eventId,
+    userId: displayData.userId,
+    name: displayData.name,
+    email: displayData.email,
+    timestamp: displayData.timestamp
   });
 
   return (
@@ -39,19 +63,23 @@ const RegistrationSuccess = () => {
           <div className="bg-gray-50 p-6 rounded-lg">
             <h2 className="text-xl font-semibold mb-4">Registration Details</h2>
             <div className="space-y-3">
-              <p><span className="font-medium">Name:</span> {registrationData.name}</p>
-              <p><span className="font-medium">Email:</span> {registrationData.email}</p>
-              <p><span className="font-medium">Phone:</span> {registrationData.phone}</p>
-              {registrationData.requirements && (
-                <p><span className="font-medium">Special Requirements:</span> {registrationData.requirements}</p>
-              )}
+              <p><span className="font-medium">Registration ID:</span> {displayData.registrationId}</p>
+              <p><span className="font-medium">Name:</span> {displayData.name}</p>
+              <p><span className="font-medium">Email:</span> {displayData.email}</p>
+              <p><span className="font-medium">Event:</span> {event?.title}</p>
+              <p><span className="font-medium">Registration Time:</span> {new Date(displayData.timestamp).toLocaleString()}</p>
             </div>
           </div>
 
           <div className="flex flex-col items-center space-y-4">
             <h2 className="text-xl font-semibold">Your Registration QR Code</h2>
             <div className="bg-white p-4 rounded-lg shadow-sm">
-              <QRCodeSVG value={qrData} size={200} level="H" />
+              <QRCodeSVG 
+                value={qrValue} 
+                size={200} 
+                level="H"
+                includeMargin={true}
+              />
             </div>
             <p className="text-sm text-gray-600">
               Please present this QR code when you arrive at the event.

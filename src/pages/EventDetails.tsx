@@ -28,13 +28,57 @@ const EventDetails = () => {
     }
   });
 
-  const handleRegister = () => {
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('role')
+        .eq('id', user?.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
+  });
+
+  const handleRegister = async () => {
     if (!user) {
       toast.error("Please login to register for events");
       navigate("/login");
       return;
     }
-    navigate(`/events/${id}/register`);
+
+    try {
+      // Update the participants count
+      const { data, error } = await supabase
+        .from('events')
+        .update({ 
+          current_volunteers: (event?.current_volunteers || 0) + 1 
+        })
+        .eq('id', id)
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      // Create registration data
+      const registrationData = {
+        registrationId: `REG-${Date.now()}`,
+        eventId: id,
+        userId: user.id,
+        name: user.user_metadata?.full_name || user.email,
+        email: user.email,
+        timestamp: new Date().toISOString()
+      };
+
+      navigate(`/events/${id}/registration-success`, { 
+        state: { registrationData } 
+      });
+    } catch (error: any) {
+      toast.error(error.message);
+    }
   };
 
   const handleBackToEvents = () => {
@@ -46,6 +90,7 @@ const EventDetails = () => {
   }
 
   const spotsRemaining = event.volunteers_needed - event.current_volunteers;
+  const isOrganization = userProfile?.role === 'organization';
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -99,15 +144,8 @@ const EventDetails = () => {
           </div>
 
           <div>
-            <h2 className="text-xl font-semibold mb-2">Requirements</h2>
-            <p className="text-gray-600">{event.requirements}</p>
-          </div>
-          
-          <div>
             <h2 className="text-xl font-semibold mb-2">Volunteer Status</h2>
-            <div className="bg
-
--gray-100 p-4 rounded-lg">
+            <div className="bg-gray-100 p-4 rounded-lg">
               <p className="text-gray-600">
                 <span className="font-medium">{spotsRemaining}</span> spots remaining
               </p>
@@ -123,9 +161,11 @@ const EventDetails = () => {
             </div>
           </div>
           
-          <Button onClick={handleRegister} className="w-full">
-            Register for Event
-          </Button>
+          {!isOrganization && spotsRemaining > 0 && (
+            <Button onClick={handleRegister} className="w-full">
+              Register for Event
+            </Button>
+          )}
         </div>
       </Card>
     </div>
