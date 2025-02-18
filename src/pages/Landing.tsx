@@ -228,7 +228,7 @@ const Landing = () => {
       </section>
 
       {/* CTA Section */}
-      <section className="py-20 bg-sky-200 hover:bg-sky-100">
+      <section className="py-20 bg-blue-100">
         <div className="container mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center animate-fade-in">
             <h2 className="text-3xl font-bold mb-6 text-blue-950">Ready to Make an Impact?</h2>
