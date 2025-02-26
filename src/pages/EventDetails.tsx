@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useParams, useNavigate } from "react-router-dom";
@@ -70,38 +69,8 @@ const EventDetails = () => {
         return;
       }
 
-      const { error: registrationError } = await supabase
-        .from('registrations')
-        .insert({
-          event_id: id,
-          user_id: user.id
-        });
-
-      if (registrationError) throw registrationError;
-
-      // Update volunteer count
-      const { error: updateError } = await supabase
-        .from('events')
-        .update({ 
-          current_volunteers: (event?.current_volunteers || 0) + 1 
-        })
-        .eq('id', id);
-
-      if (updateError) throw updateError;
-
-      const registrationData = {
-        registrationId: `REG-${Date.now()}`,
-        eventId: id,
-        userId: user.id,
-        name: user.user_metadata?.full_name || user.email,
-        email: user.email,
-        timestamp: new Date().toISOString()
-      };
-
-      toast.success("Successfully registered for the event!");
-      navigate(`/events/${id}/registration-success`, { 
-        state: { registrationData } 
-      });
+      // Navigate to registration page instead of direct registration
+      navigate(`/events/${id}/register`);
     } catch (error: any) {
       toast.error(error.message);
     }
