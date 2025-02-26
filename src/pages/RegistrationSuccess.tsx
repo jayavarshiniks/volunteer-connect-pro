@@ -13,7 +13,6 @@ const RegistrationSuccess = () => {
   const { id: eventId } = useParams();
   const registrationData = location.state?.registrationData;
 
-  // If this is being accessed via QR code scan, try to get registration data from URL params
   const qrData = location.search ? JSON.parse(decodeURIComponent(location.search.slice(1))) : null;
   const displayData = registrationData || qrData;
 
@@ -48,6 +47,7 @@ const RegistrationSuccess = () => {
     userId: displayData.userId,
     name: displayData.name,
     email: displayData.email,
+    phone: displayData.phone,
     timestamp: displayData.timestamp
   });
 
@@ -66,6 +66,13 @@ const RegistrationSuccess = () => {
               <p><span className="font-medium">Registration ID:</span> {displayData.registrationId}</p>
               <p><span className="font-medium">Name:</span> {displayData.name}</p>
               <p><span className="font-medium">Email:</span> {displayData.email}</p>
+              <p><span className="font-medium">Phone:</span> {displayData.phone}</p>
+              {displayData.emergency_contact && (
+                <p><span className="font-medium">Emergency Contact:</span> {displayData.emergency_contact}</p>
+              )}
+              {displayData.dietary_restrictions && (
+                <p><span className="font-medium">Dietary Restrictions:</span> {displayData.dietary_restrictions}</p>
+              )}
               <p><span className="font-medium">Event:</span> {event?.title}</p>
               <p><span className="font-medium">Registration Time:</span> {new Date(displayData.timestamp).toLocaleString()}</p>
             </div>
