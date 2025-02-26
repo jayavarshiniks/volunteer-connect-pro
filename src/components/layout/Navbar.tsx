@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Link, useNavigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
@@ -51,6 +50,12 @@ export const Navbar = () => {
 
   const isOrganization = userProfile?.role === 'organization';
 
+  const getProfilePath = () => {
+    return userProfile?.role === 'organization' 
+      ? '/profile/organization'
+      : '/profile/volunteer';
+  };
+
   return (
     <nav className="border-b">
       <div className="container mx-auto px-4 sm:px-6 lg:px-8">
@@ -87,6 +92,9 @@ export const Navbar = () => {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => navigate(getProfilePath())}>
+                    Profile
+                  </DropdownMenuItem>
                   {isOrganization && (
                     <DropdownMenuItem onClick={() => navigate('/organization/dashboard')}>
                       Organization Dashboard

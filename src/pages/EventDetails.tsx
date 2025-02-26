@@ -50,14 +50,33 @@ const EventDetails = () => {
     }
 
     try {
-      // Check if event is full
+      const { data: existingRegistration } = await supabase
+        .from('registrations')
+        .select('*')
+        .eq('event_id', id)
+        .eq('user_id', user.id)
+        .maybeSingle();
+
+      if (existingRegistration) {
+        toast.error("You are already registered for this event");
+        return;
+      }
+
       if (event && event.current_volunteers >= event.volunteers_needed) {
         toast.error("Sorry, this event is full");
         return;
       }
 
-      // Update the participants count
-      const { data, error } = await supabase
+      const { error: registrationError } = await supabase
+        .from('registrations')
+        .insert({
+          event_id: id,
+          user_id: user.id
+        });
+
+      if (registrationError) throw registrationError;
+
+      const { data, error: updateError } = await supabase
         .from('events')
         .update({ 
           current_volunteers: (event?.current_volunteers || 0) + 1 
@@ -66,9 +85,8 @@ const EventDetails = () => {
         .select()
         .single();
 
-      if (error) throw error;
+      if (updateError) throw updateError;
 
-      // Create registration data
       const registrationData = {
         registrationId: `REG-${Date.now()}`,
         eventId: id,
@@ -125,7 +143,13 @@ const EventDetails = () => {
             <p className="text-gray-600 mb-2">
               📅 Date: {format(new Date(event.date), 'PPP')} at {event.time}
             </p>
-            <p className="text-gray-600 mb-2">📍 Location: {event.location}</p>
+            <p className="text-gray-600 mb-2">
+              📍 Location: {
+                event.location.includes(',') 
+                  ? 'View on map' // If it's coordinates
+                  : event.location // If it's text location
+              }
+            </p>
             <p className="text-gray-600">{event.description}</p>
           </div>
           
