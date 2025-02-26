@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useParams, useNavigate } from "react-router-dom";
@@ -32,7 +33,7 @@ const EventDetails = () => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from('profiles')
-        .select('role')
+        .select('*')
         .eq('id', user?.id)
         .single();
 
@@ -50,14 +51,16 @@ const EventDetails = () => {
     }
 
     try {
-      const { data: existingRegistration } = await supabase
+      // Check if user is already registered
+      const { data: existing, error: checkError } = await supabase
         .from('registrations')
-        .select('*')
+        .select('id')
         .eq('event_id', id)
         .eq('user_id', user.id)
         .maybeSingle();
 
-      if (existingRegistration) {
+      if (checkError) throw checkError;
+      if (existing) {
         toast.error("You are already registered for this event");
         return;
       }
@@ -76,14 +79,13 @@ const EventDetails = () => {
 
       if (registrationError) throw registrationError;
 
-      const { data, error: updateError } = await supabase
+      // Update volunteer count
+      const { error: updateError } = await supabase
         .from('events')
         .update({ 
           current_volunteers: (event?.current_volunteers || 0) + 1 
         })
-        .eq('id', id)
-        .select()
-        .single();
+        .eq('id', id);
 
       if (updateError) throw updateError;
 
@@ -144,11 +146,7 @@ const EventDetails = () => {
               📅 Date: {format(new Date(event.date), 'PPP')} at {event.time}
             </p>
             <p className="text-gray-600 mb-2">
-              📍 Location: {
-                event.location.includes(',') 
-                  ? 'View on map' // If it's coordinates
-                  : event.location // If it's text location
-              }
+              📍 Location: {event.location}
             </p>
             <p className="text-gray-600">{event.description}</p>
           </div>

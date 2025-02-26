@@ -12,7 +12,7 @@ export type Database = {
       events: {
         Row: {
           created_at: string
-          current_volunteers: number | null
+          current_volunteers: number
           date: string
           description: string
           id: string
@@ -30,7 +30,7 @@ export type Database = {
         }
         Insert: {
           created_at?: string
-          current_volunteers?: number | null
+          current_volunteers?: number
           date: string
           description: string
           id?: string
@@ -48,7 +48,7 @@ export type Database = {
         }
         Update: {
           created_at?: string
-          current_volunteers?: number | null
+          current_volunteers?: number
           date?: string
           description?: string
           id?: string
@@ -76,24 +76,84 @@ export type Database = {
       }
       profiles: {
         Row: {
+          bio: string | null
           created_at: string
+          full_name: string | null
           id: string
+          location: string | null
+          organization_description: string | null
+          organization_name: string | null
+          organization_website: string | null
+          phone: string | null
+          profile_image_url: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string
         }
         Insert: {
+          bio?: string | null
           created_at?: string
+          full_name?: string | null
           id: string
+          location?: string | null
+          organization_description?: string | null
+          organization_name?: string | null
+          organization_website?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
           role: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Update: {
+          bio?: string | null
           created_at?: string
+          full_name?: string | null
           id?: string
+          location?: string | null
+          organization_description?: string | null
+          organization_name?: string | null
+          organization_website?: string | null
+          phone?: string | null
+          profile_image_url?: string | null
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string
         }
         Relationships: []
+      }
+      registrations: {
+        Row: {
+          event_id: string | null
+          id: string
+          registration_time: string | null
+          user_id: string | null
+        }
+        Insert: {
+          event_id?: string | null
+          id?: string
+          registration_time?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          event_id?: string | null
+          id?: string
+          registration_time?: string | null
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "registrations_event_id_fkey"
+            columns: ["event_id"]
+            isOneToOne: false
+            referencedRelation: "events"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "registrations_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -8,6 +8,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Textarea } from "@/components/ui/textarea";
 import { useQuery } from "@tanstack/react-query";
+import type { Profile } from "@/types/database";
 
 const OrganizationProfile = () => {
   const { user } = useAuth();
@@ -23,18 +24,30 @@ const OrganizationProfile = () => {
         .single();
 
       if (error) throw error;
-      return data;
+      return data as Profile;
     },
     enabled: !!user
   });
 
-  const [formData, setFormData] = useState({
-    organization_name: profile?.organization_name || '',
-    phone: profile?.phone || '',
-    organization_description: profile?.organization_description || '',
-    organization_website: profile?.organization_website || '',
-    location: profile?.location || '',
+  const [formData, setFormData] = useState<Partial<Profile>>({
+    organization_name: '',
+    phone: '',
+    organization_description: '',
+    organization_website: '',
+    location: '',
   });
+
+  useEffect(() => {
+    if (profile) {
+      setFormData({
+        organization_name: profile.organization_name || '',
+        phone: profile.phone || '',
+        organization_description: profile.organization_description || '',
+        organization_website: profile.organization_website || '',
+        location: profile.location || '',
+      });
+    }
+  }, [profile]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
