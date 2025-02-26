@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useParams, useNavigate } from "react-router-dom";
@@ -51,6 +50,12 @@ const EventDetails = () => {
     }
 
     try {
+      // Check if event is full
+      if (event && event.current_volunteers >= event.volunteers_needed) {
+        toast.error("Sorry, this event is full");
+        return;
+      }
+
       // Update the participants count
       const { data, error } = await supabase
         .from('events')
@@ -73,6 +78,7 @@ const EventDetails = () => {
         timestamp: new Date().toISOString()
       };
 
+      toast.success("Successfully registered for the event!");
       navigate(`/events/${id}/registration-success`, { 
         state: { registrationData } 
       });
@@ -89,8 +95,9 @@ const EventDetails = () => {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
   }
 
-  const spotsRemaining = event.volunteers_needed - event.current_volunteers;
+  const spotsRemaining = event.volunteers_needed - (event.current_volunteers || 0);
   const isOrganization = userProfile?.role === 'organization';
+  const canRegister = !isOrganization && spotsRemaining > 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -150,18 +157,18 @@ const EventDetails = () => {
                 <span className="font-medium">{spotsRemaining}</span> spots remaining
               </p>
               <p className="text-sm text-gray-500">
-                {event.current_volunteers} volunteers registered out of {event.volunteers_needed} needed
+                {event.current_volunteers || 0} volunteers registered out of {event.volunteers_needed} needed
               </p>
               <div className="w-full bg-gray-200 rounded-full h-2.5 mt-2">
                 <div 
                   className="bg-primary h-2.5 rounded-full" 
-                  style={{ width: `${(event.current_volunteers / event.volunteers_needed) * 100}%` }}
+                  style={{ width: `${((event.current_volunteers || 0) / event.volunteers_needed) * 100}%` }}
                 ></div>
               </div>
             </div>
           </div>
           
-          {!isOrganization && spotsRemaining > 0 && (
+          {canRegister && (
             <Button onClick={handleRegister} className="w-full">
               Register for Event
             </Button>

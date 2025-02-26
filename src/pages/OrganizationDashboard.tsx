@@ -1,14 +1,16 @@
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
+import { Edit } from "lucide-react";
 
 const OrganizationDashboard = () => {
   const { user } = useAuth();
+  const navigate = useNavigate();
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['organization-events', user?.id],
@@ -28,7 +30,7 @@ const OrganizationDashboard = () => {
   const stats = {
     totalEvents: events?.length || 0,
     activeEvents: events?.filter(event => new Date(event.date) >= new Date()).length || 0,
-    totalVolunteers: events?.reduce((acc, event) => acc + event.current_volunteers, 0) || 0,
+    totalVolunteers: events?.reduce((acc, event) => acc + (event.current_volunteers || 0), 0) || 0,
     completedEvents: events?.filter(event => new Date(event.date) < new Date()).length || 0,
   };
 
@@ -85,10 +87,23 @@ const OrganizationDashboard = () => {
                     </p>
                     <p className="text-gray-600">Location: {event.location}</p>
                   </div>
-                  <div className="text-right">
+                  <div className="text-right space-y-2">
                     <p className="text-sm text-gray-600">
                       {event.current_volunteers} / {event.volunteers_needed} volunteers
                     </p>
+                    <div className="flex space-x-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => navigate(`/events/${event.id}/edit`)}
+                      >
+                        <Edit className="w-4 h-4 mr-1" />
+                        Edit
+                      </Button>
+                      <Link to={`/events/${event.id}`}>
+                        <Button size="sm">View</Button>
+                      </Link>
+                    </div>
                     <span className={`inline-block px-3 py-1 rounded-full text-sm ${
                       new Date(event.date) >= new Date() 
                         ? 'bg-green-100 text-green-800' 
