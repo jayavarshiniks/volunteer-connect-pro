@@ -3,7 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { handleAuthError, UserRole } from "@/utils/auth-utils";
+import { handleAuthError, handleAuthNavigation, UserRole } from "@/utils/auth-utils";
 
 type AuthContextType = {
   user: any;
@@ -23,30 +23,60 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   useEffect(() => {
     // Initial session check
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+    const initializeAuth = async () => {
+      try {
+        // Get the initial session
+        const { data: { session } } = await supabase.auth.getSession();
+        setUser(session?.user ?? null);
 
-    // Listen for auth changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user ?? null);
-      setLoading(false);
-    });
+        // Set up the auth state listener
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange(async (event, session) => {
+          console.log("Auth state changed:", event);
+          setUser(session?.user ?? null);
 
-    return () => subscription.unsubscribe();
-  }, []);
+          // Handle session refresh
+          if (event === 'TOKEN_REFRESHED') {
+            console.log('Token refreshed successfully');
+          }
+
+          // Handle sign in
+          if (event === 'SIGNED_IN' && session?.user) {
+            await handleAuthNavigation(session.user.id, navigate);
+          }
+
+          // Handle sign out
+          if (event === 'SIGNED_OUT') {
+            setUser(null);
+            navigate('/login');
+          }
+        });
+
+        // Clean up loading state
+        setLoading(false);
+
+        return () => {
+          subscription.unsubscribe();
+        };
+      } catch (error) {
+        console.error("Error initializing auth:", error);
+        setLoading(false);
+      }
+    };
+
+    initializeAuth();
+  }, [navigate]);
 
   const signUp = async (email: string, password: string, role: UserRole) => {
     try {
+      setLoading(true);
       const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
         email,
         password,
         options: {
           data: {
-            role: role, // This role will be stored in user metadata
+            role: role,
           },
         },
       });
@@ -68,11 +98,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       }
     } catch (error: any) {
       handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const signIn = async (email: string, password: string) => {
     try {
+      setLoading(true);
       const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -92,7 +125,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (!profileData) throw new Error("No profile found");
 
       const userRole = profileData.role as UserRole;
-      console.log("User role from profile:", userRole); // Debugging
+      console.log("User role from profile:", userRole);
 
       // Navigate based on role
       if (userRole === 'volunteer') {
@@ -104,21 +137,31 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       } else {
         console.error("Invalid user role:", userRole);
         toast.error("Invalid user role");
-        await signOut(); // Sign out if role is invalid
+        await signOut();
       }
     } catch (error: any) {
       handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
   };
 
   const signOut = async () => {
     try {
+      setLoading(true);
       const { error } = await supabase.auth.signOut();
       if (error) throw error;
+      
+      // Clear the user state
+      setUser(null);
+      
+      // Navigate to login
       navigate("/login");
       toast.success("Logged out successfully!");
     } catch (error: any) {
       handleAuthError(error);
+    } finally {
+      setLoading(false);
     }
   };
 
