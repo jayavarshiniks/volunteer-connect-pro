@@ -27,7 +27,7 @@ serve(async (req) => {
     const { interests, userId, searchHistory } = await req.json();
 
     // Create a Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://ekfpysctlcrvljakdumu.supabase.co';
+    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
     const supabase = createClient(supabaseUrl, supabaseKey);
 
