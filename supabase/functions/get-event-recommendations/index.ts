@@ -17,6 +17,7 @@ serve(async (req) => {
   // Get OpenAI API key from environment variables
   const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
   if (!openAIApiKey) {
+    console.error('OpenAI API key not found');
     return new Response(
       JSON.stringify({ error: 'OpenAI API key not found' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -25,20 +26,43 @@ serve(async (req) => {
 
   try {
     const { interests, userId, searchHistory } = await req.json();
+    console.log('Received request:', { interests, userId, searchHistoryLength: searchHistory?.length });
 
     // Create a Supabase client
     const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+    
+    if (!supabaseUrl || !supabaseKey) {
+      console.error('Supabase credentials not found', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
+      return new Response(
+        JSON.stringify({ error: 'Supabase credentials not found' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
     const supabase = createClient(supabaseUrl, supabaseKey);
 
     // Fetch events from Supabase
+    console.log('Fetching events from Supabase');
     const { data: events, error: eventsError } = await supabase
       .from('events')
       .select('*')
       .gte('date', new Date().toISOString().split('T')[0]) // Only future events
       .order('date', { ascending: true });
 
-    if (eventsError) throw eventsError;
+    if (eventsError) {
+      console.error('Error fetching events:', eventsError);
+      throw eventsError;
+    }
+
+    console.log(`Found ${events?.length || 0} events`);
+    
+    if (!events || events.length === 0) {
+      return new Response(
+        JSON.stringify({ recommendedEvents: [] }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
 
     // Prepare event data for OpenAI
     const eventsFormatted = events.map(event => ({
@@ -74,6 +98,7 @@ serve(async (req) => {
     ONLY include the JSON in your response, with no other text.
     `;
 
+    console.log('Calling OpenAI API');
     // Call OpenAI API
     const response = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -93,11 +118,13 @@ serve(async (req) => {
 
     if (!response.ok) {
       const errorData = await response.json();
+      console.error('OpenAI API error:', errorData);
       throw new Error(`OpenAI API error: ${JSON.stringify(errorData)}`);
     }
 
     const data = await response.json();
     const recommendationsText = data.choices[0].message.content;
+    console.log('OpenAI response:', recommendationsText);
     
     // Parse recommendations
     let recommendations;
@@ -116,15 +143,21 @@ serve(async (req) => {
 
     // Save search to history if userId is provided
     if (userId && interests) {
-      await supabase
+      console.log('Saving search to history:', { userId, interests });
+      const { error: insertError } = await supabase
         .from('search_history')
         .insert({
           user_id: userId,
           search_query: interests,
           created_at: new Date().toISOString()
         });
+        
+      if (insertError) {
+        console.error('Error saving search history:', insertError);
+      }
     }
 
+    console.log(`Returning ${recommendedEvents.length} recommended events`);
     return new Response(
       JSON.stringify({ recommendedEvents }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }

@@ -29,6 +29,7 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [recommendedEvents, setRecommendedEvents] = useState<RecommendedEvent[]>([]);
+  const [error, setError] = useState<string | null>(null);
 
   // Fetch user's search history
   const { data: searchHistory } = useQuery({
@@ -53,6 +54,8 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
     
     const getRecommendations = async () => {
       setIsLoading(true);
+      setError(null);
+      
       try {
         const response = await supabase.functions.invoke('get-event-recommendations', {
           body: {
@@ -63,13 +66,18 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
         });
 
         if (response.error) {
-          throw new Error(response.error.message);
+          console.error('Function error:', response.error);
+          throw new Error(response.error.message || 'Error calling recommendations function');
         }
 
-        const data = await response.data;
-        setRecommendedEvents(data.recommendedEvents || []);
+        if (!response.data) {
+          throw new Error('No data returned from function');
+        }
+
+        setRecommendedEvents(response.data.recommendedEvents || []);
       } catch (error) {
         console.error('Failed to get recommendations:', error);
+        setError(error instanceof Error ? error.message : 'Unknown error');
         toast.error('Failed to get event recommendations');
       } finally {
         setIsLoading(false);
@@ -91,6 +99,26 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
             <Card key={i} className="p-4 h-32" />
           ))}
         </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    console.log('Rendering error state:', error);
+    return (
+      <div className="my-6">
+        <h2 className="text-xl font-semibold mb-4 flex items-center">
+          <Sparkles className="w-5 h-5 mr-2 text-yellow-500" />
+          Recommended For You
+        </h2>
+        <Card className="p-4 bg-red-50">
+          <p className="text-red-500">
+            We couldn't generate recommendations right now. Please try again later.
+          </p>
+          <p className="text-sm text-gray-500 mt-2">
+            Error: {error}
+          </p>
+        </Card>
       </div>
     );
   }
