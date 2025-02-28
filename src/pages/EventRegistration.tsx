@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -60,17 +60,19 @@ const EventRegistration = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!user,
-    onSuccess: (data) => {
-      if (data) {
-        setFormData(prev => ({
-          ...prev,
-          full_name: data.full_name || '',
-          phone: data.phone || '',
-        }));
-      }
-    }
+    enabled: !!user
   });
+
+  // Use useEffect instead of onSuccess callback
+  useEffect(() => {
+    if (userProfile) {
+      setFormData(prev => ({
+        ...prev,
+        full_name: userProfile.full_name || '',
+        phone: userProfile.phone || '',
+      }));
+    }
+  }, [userProfile]);
 
   const handleConfirmRegistration = async (e: React.FormEvent) => {
     e.preventDefault();

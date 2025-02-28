@@ -14,7 +14,10 @@ import Events from "./pages/Events";
 import EventDetails from "./pages/EventDetails";
 import EventRegistration from "./pages/EventRegistration";
 import CreateEvent from "./pages/CreateEvent";
+import EditEvent from "./pages/EditEvent";
 import OrganizationDashboard from "./pages/OrganizationDashboard";
+import VolunteerProfile from "./pages/profile/VolunteerProfile";
+import OrganizationProfile from "./pages/profile/OrganizationProfile";
 import NotFound from "./pages/NotFound";
 import RegistrationSuccess from "./pages/RegistrationSuccess";
 
@@ -37,7 +40,10 @@ const App = () => (
                 <Route path="/events/:id/register" element={<EventRegistration />} />
                 <Route path="/events/:id/registration-success" element={<RegistrationSuccess />} />
                 <Route path="/events/create" element={<CreateEvent />} />
+                <Route path="/events/:id/edit" element={<EditEvent />} />
                 <Route path="/organization/dashboard" element={<OrganizationDashboard />} />
+                <Route path="/profile/volunteer" element={<VolunteerProfile />} />
+                <Route path="/profile/organization" element={<OrganizationProfile />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </TooltipProvider>

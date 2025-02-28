@@ -15,9 +15,11 @@ const Events = () => {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
+      const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
       const { data, error } = await supabase
         .from('events')
         .select('*')
+        .gte('date', today) // Only get events that are today or in the future
         .order('date', { ascending: true });
 
       if (error) throw error;

@@ -6,11 +6,13 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Edit } from "lucide-react";
+import { Edit, Users, Calendar, CheckCircle } from "lucide-react";
+import { useEffect } from "react";
 
 const OrganizationDashboard = () => {
   const { user } = useAuth();
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   const { data: events, isLoading } = useQuery({
     queryKey: ['organization-events', user?.id],
@@ -26,6 +28,32 @@ const OrganizationDashboard = () => {
     },
     enabled: !!user
   });
+
+  // Setup real-time updates for events
+  useEffect(() => {
+    if (!user) return;
+
+    const channel = supabase
+      .channel('organization-events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // Listen for all changes
+          schema: 'public',
+          table: 'events',
+          filter: `organization_id=eq.${user.id}`
+        },
+        () => {
+          // Refresh events data when changes occur
+          queryClient.invalidateQueries({ queryKey: ['organization-events', user?.id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [user, queryClient]);
 
   const stats = {
     totalEvents: events?.length || 0,
@@ -49,19 +77,31 @@ const OrganizationDashboard = () => {
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-2">Total Events</h3>
+          <div className="flex items-center mb-2">
+            <Calendar className="w-5 h-5 mr-2 text-primary" />
+            <h3 className="text-lg font-semibold">Total Events</h3>
+          </div>
           <p className="text-3xl font-bold">{stats.totalEvents}</p>
         </Card>
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-2">Active Events</h3>
+          <div className="flex items-center mb-2">
+            <Calendar className="w-5 h-5 mr-2 text-green-500" />
+            <h3 className="text-lg font-semibold">Active Events</h3>
+          </div>
           <p className="text-3xl font-bold">{stats.activeEvents}</p>
         </Card>
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-2">Total Volunteers</h3>
+          <div className="flex items-center mb-2">
+            <Users className="w-5 h-5 mr-2 text-blue-500" />
+            <h3 className="text-lg font-semibold">Total Volunteers</h3>
+          </div>
           <p className="text-3xl font-bold">{stats.totalVolunteers}</p>
         </Card>
         <Card className="p-6">
-          <h3 className="text-lg font-semibold mb-2">Completed Events</h3>
+          <div className="flex items-center mb-2">
+            <CheckCircle className="w-5 h-5 mr-2 text-gray-500" />
+            <h3 className="text-lg font-semibold">Completed Events</h3>
+          </div>
           <p className="text-3xl font-bold">{stats.completedEvents}</p>
         </Card>
       </div>
