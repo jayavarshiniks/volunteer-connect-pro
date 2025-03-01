@@ -10,7 +10,18 @@ import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, Upload } from "lucide-react";
+import { MapPin, Upload, Trash2, AlertTriangle } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 
 const EditEvent = () => {
   const navigate = useNavigate();
@@ -18,6 +29,7 @@ const EditEvent = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [loading, setLoading] = useState(false);
+  const [deleteLoading, setDeleteLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
@@ -92,6 +104,55 @@ const EditEvent = () => {
       );
     } else {
       toast.error("Geolocation is not supported by your browser");
+    }
+  };
+
+  const handleDeleteEvent = async () => {
+    if (!user || !event) {
+      toast.error("You must be logged in to delete an event");
+      return;
+    }
+
+    setDeleteLoading(true);
+
+    try {
+      // First check if the event has any registrations
+      const { data: registrations, error: regError } = await supabase
+        .from('registrations')
+        .select('id')
+        .eq('event_id', id);
+
+      if (regError) throw regError;
+
+      // Delete all registrations first
+      if (registrations && registrations.length > 0) {
+        const { error: deleteRegError } = await supabase
+          .from('registrations')
+          .delete()
+          .eq('event_id', id);
+
+        if (deleteRegError) throw deleteRegError;
+      }
+
+      // Then delete the event
+      const { error } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', id)
+        .eq('organization_id', user.id);
+
+      if (error) throw error;
+
+      // Invalidate relevant queries
+      await queryClient.invalidateQueries({ queryKey: ['events'] });
+      await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
+
+      toast.success("Event deleted successfully!");
+      navigate("/organization/dashboard");
+    } catch (error: any) {
+      toast.error(error.message);
+    } finally {
+      setDeleteLoading(false);
     }
   };
 
@@ -304,17 +365,46 @@ const EditEvent = () => {
               </p>
             )}
           </div>
-          <div className="flex justify-end space-x-4">
-            <Button 
-              type="button" 
-              variant="outline" 
-              onClick={() => navigate("/organization/dashboard")}
-            >
-              Cancel
-            </Button>
-            <Button type="submit" disabled={loading}>
-              {loading ? "Updating Event..." : "Update Event"}
-            </Button>
+          <div className="flex justify-between space-x-4">
+            <AlertDialog>
+              <AlertDialogTrigger asChild>
+                <Button type="button" variant="destructive" className="flex items-center">
+                  <Trash2 className="w-4 h-4 mr-2" />
+                  Delete Event
+                </Button>
+              </AlertDialogTrigger>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This action cannot be undone. This will permanently delete the event
+                    and all registrations associated with it.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleDeleteEvent}
+                    disabled={deleteLoading}
+                    className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  >
+                    {deleteLoading ? "Deleting..." : "Delete Event"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+            <div className="flex space-x-2 ml-auto">
+              <Button 
+                type="button" 
+                variant="outline" 
+                onClick={() => navigate("/organization/dashboard")}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={loading}>
+                {loading ? "Updating Event..." : "Update Event"}
+              </Button>
+            </div>
           </div>
         </form>
       </Card>
