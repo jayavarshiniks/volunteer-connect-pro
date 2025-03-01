@@ -1,111 +1,149 @@
 
-/*
-  This is a script to seed example events into Supabase
-  It can be run manually or used as reference code
-*/
-
 import { supabase } from "../integrations/supabase/client";
 
-// Adjust start and end dates for events
-const today = new Date();
-const twoWeeksFromNow = new Date(today);
-twoWeeksFromNow.setDate(today.getDate() + 14);
-
-// Format date to YYYY-MM-DD
-const formatDate = (date: Date) => {
-  return date.toISOString().split('T')[0];
+// Function to get a random date between today and 30 days from now
+const getRandomFutureDate = () => {
+  const today = new Date();
+  const futureDate = new Date();
+  futureDate.setDate(today.getDate() + Math.floor(Math.random() * 30) + 1);
+  return futureDate.toISOString().split('T')[0]; // Format as YYYY-MM-DD
 };
 
-// Sample organization ID - need to replace with real organization ID
-const organizationId = "YOUR_ORGANIZATION_ID"; // Replace with a real organization ID
+// Random times for events
+const eventTimes = ['09:00', '10:30', '13:00', '14:30', '16:00', '18:00'];
 
-// Sample events
-const sampleEvents = [
+// Location options
+const locations = [
+  'Central Park, New York',
+  'Downtown Community Center, Los Angeles',
+  'Riverfront Park, Chicago',
+  'Golden Gate Park, San Francisco',
+  'South Beach, Miami',
+  'Memorial Park, Houston',
+  'Pike Place Market, Seattle',
+  'Boston Common, Boston',
+  'Lincoln Park, Denver',
+  'Piedmont Park, Atlanta'
+];
+
+// Sample event titles and descriptions
+const events = [
   {
-    title: "Beach Cleanup - Ocean Park",
-    description: "Join us for a community beach cleanup event. Help keep our beaches clean and protect marine life. All equipment will be provided, but feel free to bring your own gloves if you prefer.",
-    date: formatDate(new Date(today.getTime() + 3 * 24 * 60 * 60 * 1000)), // 3 days from now
-    time: "10:00:00",
-    location: "Ocean Park Beach, Main Entrance",
-    volunteers_needed: 20,
-    current_volunteers: 0,
-    organization_id: organizationId,
-    organization_contact: "beachcleanup@example.org",
-    image_url: "https://images.unsplash.com/photo-1618477461853-cf6ed80faba5?q=80&w=1000",
-    requirements: "Wear comfortable clothes and shoes. Sunscreen recommended."
+    title: 'Community Garden Planting Day',
+    description: 'Join us for a day of planting flowers and vegetables in our community garden. No experience needed, just bring your enthusiasm and help us create a beautiful green space for everyone to enjoy.',
+    requirements: 'Please wear comfortable clothes that you don\'t mind getting dirty. Bring gardening gloves if you have them.',
+    image_url: 'https://images.unsplash.com/photo-1581578731548-c64695cc6952?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
   },
   {
-    title: "Food Drive for Local Shelter",
-    description: "Help us collect and sort food donations for our local homeless shelter. We need volunteers to help receive, sort, and pack food items for distribution.",
-    date: formatDate(new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)), // 1 week from now
-    time: "09:30:00",
-    location: "Community Center, 123 Main St",
-    volunteers_needed: 15,
-    current_volunteers: 0,
-    organization_id: organizationId,
-    organization_contact: "fooddrive@example.org",
-    image_url: "https://images.unsplash.com/photo-1593113598332-cd59a0c3a9a1?q=80&w=1000",
-    requirements: "No special requirements. Training will be provided on site."
+    title: 'Beach Cleanup Initiative',
+    description: 'Help keep our beaches clean and safe for wildlife and visitors. We\'ll provide all cleaning supplies, just come ready to make a difference for our coastal environment.',
+    requirements: 'Wear sunscreen and a hat. Comfortable walking shoes recommended.',
+    image_url: 'https://images.unsplash.com/photo-1595231776515-ddffb1f4eb73?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
   },
   {
-    title: "Animal Shelter Care Day",
-    description: "Spend time with shelter animals and help with cleaning, feeding, and socializing with the animals. This is a great opportunity for animal lovers to make a difference.",
-    date: formatDate(new Date(today.getTime() + 10 * 24 * 60 * 60 * 1000)), // 10 days from now
-    time: "13:00:00",
-    location: "Happy Paws Animal Shelter, 456 Park Ave",
-    volunteers_needed: 12,
-    current_volunteers: 0,
-    organization_id: organizationId,
-    organization_contact: "animals@example.org",
-    image_url: "https://images.unsplash.com/photo-1593871075120-982e042088d8?q=80&w=1000",
-    requirements: "Must be comfortable around animals. Minimum age: 16 years."
+    title: 'Food Bank Sorting & Packing',
+    description: 'Assist our local food bank with sorting and packing food donations that will be distributed to families in need throughout our community.',
+    requirements: 'Must be able to stand for 3 hours and occasionally lift items up to 20 pounds.',
+    image_url: 'https://images.unsplash.com/photo-1593113630400-ea4288922497?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
   },
   {
-    title: "Park Restoration Project",
-    description: "Help us restore and beautify our local park. Activities include planting flowers, painting benches, and general cleanup. This is a family-friendly event.",
-    date: formatDate(new Date(today.getTime() + 14 * 24 * 60 * 60 * 1000)), // 2 weeks from now
-    time: "11:00:00",
-    location: "Greenfield Park, West Entrance",
-    volunteers_needed: 25,
-    current_volunteers: 0,
-    organization_id: organizationId,
-    organization_contact: "parks@example.org",
-    image_url: "https://images.unsplash.com/photo-1503754163129-a02a0c646fba?q=80&w=1000",
-    requirements: "Bring gardening gloves if possible. Tools will be provided."
+    title: 'Literacy Program - Reading Partners',
+    description: 'Become a reading partner for elementary school students who need extra help with their reading skills. Training provided.',
+    requirements: 'Patient and enthusiastic about helping children learn. Background check required.',
+    image_url: 'https://images.unsplash.com/photo-1503676260728-1c00da094a0b?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1122&q=80'
   },
   {
-    title: "Senior Center Tech Help",
-    description: "Teach basic computer and smartphone skills to seniors at our local senior center. Patience and good communication skills required.",
-    date: formatDate(new Date(today.getTime() + 5 * 24 * 60 * 60 * 1000)), // 5 days from now
-    time: "14:00:00",
-    location: "Golden Years Senior Center, 789 Oak St",
-    volunteers_needed: 10,
-    current_volunteers: 0,
-    organization_id: organizationId,
-    organization_contact: "techhelp@example.org",
-    image_url: "https://images.unsplash.com/photo-1516192518150-0d8fee5425e3?q=80&w=1000",
-    requirements: "Knowledge of basic computer and smartphone operations. Good communication skills."
+    title: 'Habitat for Humanity Build Day',
+    description: 'Help build affordable housing for families in need. No construction experience required - our team leads will guide you through all tasks.',
+    requirements: 'Must be 18+ years old. Wear closed-toe shoes and weather-appropriate clothing.',
+    image_url: 'https://images.unsplash.com/photo-1503387837-b154d5074bd2?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1331&q=80'
+  },
+  {
+    title: 'Animal Shelter Assistant',
+    description: 'Help care for cats and dogs at our no-kill animal shelter. Tasks include walking dogs, socializing with animals, and basic cleaning.',
+    requirements: 'Animal lovers welcome! Must be comfortable around both cats and dogs.',
+    image_url: 'https://images.unsplash.com/photo-1548767797-d8c844163c4c?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1171&q=80'
+  },
+  {
+    title: 'Senior Center Technology Help',
+    description: 'Teach basic computer and smartphone skills to seniors. Help them learn to video chat with family, use email, and navigate the internet safely.',
+    requirements: 'Patient and good at explaining technology in simple terms.',
+    image_url: 'https://images.unsplash.com/photo-1573497491208-6b1acb260507?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
+  },
+  {
+    title: 'Park Trail Maintenance',
+    description: 'Help maintain our beautiful park trails by clearing brush, repairing trail surfaces, and installing signage. Training and tools provided.',
+    requirements: 'Must be physically able to walk on uneven terrain and use basic hand tools.',
+    image_url: 'https://images.unsplash.com/photo-1596189181426-7f63a1737f0d?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80'
   }
 ];
 
-// Seed function
-export const seedEvents = async () => {
-  console.log("Seeding events...");
+// Set this to the organization ID you want to assign the events to
+// You should replace this with an actual organization ID from your database
+const ORGANIZATION_ID = '3fa03ae4-e7c7-4dba-9598-ac7b51f25167'; // Replace with a real org ID
+
+// Run the seed function
+const seedEvents = async () => {
+  console.log('Starting to seed events...');
   
-  for (const event of sampleEvents) {
-    const { data, error } = await supabase
-      .from('events')
-      .insert([event]);
-      
-    if (error) {
-      console.error(`Error seeding event ${event.title}:`, error);
-    } else {
-      console.log(`Seeded event: ${event.title}`);
+  try {
+    // Get organization info to use for contact
+    const { data: orgData, error: orgError } = await supabase
+      .from('profiles')
+      .select('*')
+      .eq('role', 'organization')
+      .limit(1)
+      .single();
+    
+    if (orgError) {
+      console.error('Error fetching organization:', orgError);
+      return;
     }
+    
+    const organizationId = orgData?.id || ORGANIZATION_ID;
+    const orgContact = orgData?.phone || 'contact@example.org';
+    
+    // Create events
+    for (const event of events) {
+      const location = locations[Math.floor(Math.random() * locations.length)];
+      const date = getRandomFutureDate();
+      const time = eventTimes[Math.floor(Math.random() * eventTimes.length)];
+      const volunteersNeeded = Math.floor(Math.random() * 15) + 5; // 5-20 volunteers
+      
+      const { data, error } = await supabase
+        .from('events')
+        .insert({
+          title: event.title,
+          description: event.description,
+          date,
+          time,
+          location,
+          image_url: event.image_url,
+          requirements: event.requirements,
+          volunteers_needed: volunteersNeeded,
+          current_volunteers: 0,
+          organization_id: organizationId,
+          organization_contact: orgContact
+        });
+      
+      if (error) {
+        console.error('Error creating event:', error);
+      } else {
+        console.log(`Created event: ${event.title}`);
+      }
+    }
+    
+    console.log('Finished seeding events!');
+  } catch (error) {
+    console.error('Error in seed process:', error);
   }
-  
-  console.log("Seeding complete!");
 };
 
-// Uncomment to run
+// To run this script:
+// 1. Import it and call seedEvents() from your application
+// 2. Or run it directly with: npx ts-node src/scripts/seed-events.ts
+
+// Uncomment the next line to run the script directly
 // seedEvents();
+
+export { seedEvents };

@@ -8,10 +8,29 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import EventRecommendations from "@/components/EventRecommendations";
+import DevEventSeeder from "@/components/DevEventSeeder";
+import { useAuth } from "@/contexts/AuthContext";
 
 const Events = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
+  const { user } = useAuth();
+
+  const { data: userProfile } = useQuery({
+    queryKey: ['user-profile', user?.id],
+    queryFn: async () => {
+      if (!user?.id) return null;
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!user
+  });
 
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
@@ -41,6 +60,8 @@ const Events = () => {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
   }
 
+  const isAdmin = userProfile?.role === 'organization';
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col space-y-6">
@@ -58,6 +79,9 @@ const Events = () => {
 
         {/* AI-powered recommendations based on search query */}
         {searchQuery && <EventRecommendations interests={searchQuery} />}
+
+        {/* Developer tools for seeding events - only visible to organizations */}
+        {isAdmin && <DevEventSeeder />}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map((event) => (

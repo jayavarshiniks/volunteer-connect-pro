@@ -203,7 +203,7 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
         </h2>
         <Card className="p-4 bg-red-50">
           <p className="text-red-500">
-            We couldn't generate AI recommendations right now. Try searching with more specific terms.
+            We couldn't generate recommendations right now. Try searching with more specific terms.
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Tip: Try using keywords like "environment", "community", "education", or specific locations.

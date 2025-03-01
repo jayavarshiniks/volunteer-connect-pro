@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useParams, useNavigate } from "react-router-dom";
@@ -64,7 +63,7 @@ const EventDetails = () => {
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!userProfile?.role === 'organization'
+    enabled: !!id && userProfile?.role === 'organization'
   });
 
   const handleRegister = async () => {
@@ -201,7 +200,6 @@ const EventDetails = () => {
             </div>
           </div>
           
-          {/* Show registered volunteers if user is the event owner */}
           {isOwner && volunteers && volunteers.length > 0 && (
             <div>
               <h2 className="text-xl font-semibold mb-2">Registered Volunteers</h2>
