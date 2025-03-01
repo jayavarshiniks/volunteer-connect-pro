@@ -20,3 +20,23 @@ export interface Registration {
   user_id: string;
   registration_time: string;
 }
+
+export interface Event {
+  id: string;
+  title: string;
+  description: string;
+  date: string;
+  time: string;
+  location: string;
+  image_url?: string;
+  requirements?: string;
+  volunteers_needed: number;
+  current_volunteers: number;
+  organization_id: string;
+  organization_contact: string;
+  category?: string;
+  created_at: string;
+  updated_at: string;
+  location_lat?: number;
+  location_lng?: number;
+}

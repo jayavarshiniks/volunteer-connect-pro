@@ -42,7 +42,8 @@ const categories = [
   'Disaster Relief',
   'Arts & Culture',
   'Technology',
-  'Sports & Recreation'
+  'Sports & Recreation',
+  'Clothing Donation'
 ];
 
 // Sample event data with categories
@@ -144,6 +145,34 @@ const events = [
     requirements: 'Healthcare experience preferred but not required. Training provided for non-medical volunteers.',
     image_url: 'https://images.unsplash.com/photo-1505751172876-fa1923c5c528?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1170&q=80',
     category: 'Health & Wellness'
+  },
+  {
+    title: 'Elderly Care Visits',
+    description: 'Visit elderly individuals in nursing homes who don\'t have regular visitors. Spend time talking, playing games, or simply providing companionship.',
+    requirements: 'Compassionate individuals who enjoy conversation. Background check required.',
+    image_url: 'https://images.unsplash.com/photo-1516307318288-4e9f2d9b8641?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80',
+    category: 'Elderly Care'
+  },
+  {
+    title: 'Clothing Donation Sorting',
+    description: 'Help sort and organize clothing donations for distribution to those in need. We need volunteers to check quality, sort by size/type, and prepare items for distribution.',
+    requirements: 'No special skills required. Ability to stand for 2-3 hours.',
+    image_url: 'https://images.unsplash.com/photo-1562157873-818bc0726f68?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80',
+    category: 'Clothing Donation'
+  },
+  {
+    title: 'Disaster Relief Coordination',
+    description: 'Assist in coordinating relief efforts for recent natural disaster victims. Help match resources with needs and organize volunteer schedules.',
+    requirements: 'Good organizational skills. Experience with project management helpful but not required.',
+    image_url: 'https://images.unsplash.com/photo-1603819033403-993a1dd19ace?ixlib=rb-4.0.3&auto=format&fit=crop&w=1074&q=80',
+    category: 'Disaster Relief'
+  },
+  {
+    title: 'Community Cleanup Drive',
+    description: 'Join our community-wide cleanup initiative to remove trash and debris from streets, parks, and public spaces. Make an immediate visual impact on our community!',
+    requirements: 'Gloves and trash bags provided. Wear suitable clothing and footwear for outdoor work.',
+    image_url: 'https://images.unsplash.com/photo-1618477460930-d8bphkea31a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80',
+    category: 'Environment'
   }
 ];
 
@@ -193,7 +222,7 @@ const seedEvents = async () => {
           current_volunteers: 0,
           organization_id: organizationId,
           organization_contact: orgContact,
-          category: event.category  // Add the category field
+          category: event.category
         });
       
       if (error) {

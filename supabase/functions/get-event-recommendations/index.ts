@@ -1,227 +1,236 @@
 
-import "https://deno.land/x/xhr@0.1.0/mod.ts";
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2.33.1";
+import { serve } from 'https://deno.land/std@0.177.0/http/server.ts'
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.7.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-};
+interface RecommendedEvent {
+  id: string
+  title: string
+  date: string
+  location: string
+  description: string
+  image_url?: string
+  reason: string
+  category?: string
+}
 
 serve(async (req) => {
-  // Handle CORS preflight requests
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: corsHeaders });
-  }
-
-  // Get OpenAI API key from environment variables
-  const openAIApiKey = Deno.env.get('OPENAI_API_KEY');
-  if (!openAIApiKey) {
-    console.error('OpenAI API key not found');
-    return new Response(
-      JSON.stringify({ error: 'OpenAI API key not found' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
-  }
-
   try {
-    const { interests, userId, searchHistory } = await req.json();
-    console.log('Received request:', { interests, userId, searchHistoryLength: searchHistory?.length });
+    // Create a Supabase client with the Auth context of the logged in user
+    const supabaseClient = createClient(
+      Deno.env.get('SUPABASE_URL') ?? '',
+      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      {
+        global: {
+          headers: { Authorization: req.headers.get('Authorization')! },
+        },
+      }
+    )
 
-    // Create a Supabase client
-    const supabaseUrl = Deno.env.get('SUPABASE_URL') || '';
-    const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-    
-    if (!supabaseUrl || !supabaseKey) {
-      console.error('Supabase credentials not found', { supabaseUrl: !!supabaseUrl, supabaseKey: !!supabaseKey });
+    // Get the JSON request body
+    const { interests, userId, searchHistory = [] } = await req.json()
+
+    if (!interests) {
       return new Response(
-        JSON.stringify({ error: 'Supabase credentials not found' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        JSON.stringify({ error: 'Interests are required' }),
+        { status: 400, headers: { 'Content-Type': 'application/json' } }
+      )
     }
-    
-    const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch events from Supabase
-    console.log('Fetching events from Supabase');
-    const { data: events, error: eventsError } = await supabase
+    // Get today's date in YYYY-MM-DD format
+    const today = new Date().toISOString().split('T')[0]
+
+    // Get all upcoming events
+    const { data: events, error: eventsError } = await supabaseClient
       .from('events')
       .select('*')
-      .gte('date', new Date().toISOString().split('T')[0]) // Only future events
-      .order('date', { ascending: true });
+      .gte('date', today)
+      .order('date', { ascending: true })
 
     if (eventsError) {
-      console.error('Error fetching events:', eventsError);
-      throw eventsError;
+      console.error('Error fetching events:', eventsError)
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch events' }),
+        { status: 500, headers: { 'Content-Type': 'application/json' } }
+      )
     }
 
-    console.log(`Found ${events?.length || 0} events`);
-    
     if (!events || events.length === 0) {
       return new Response(
         JSON.stringify({ recommendedEvents: [] }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+        { headers: { 'Content-Type': 'application/json' } }
+      )
     }
 
-    // Prepare event data for OpenAI
-    const eventsFormatted = events.map(event => ({
-      id: event.id,
-      title: event.title,
-      description: event.description,
-      location: event.location,
-      date: event.date,
-      category: event.category || 'Not specified',
-      requirements: event.requirements || '',
-    }));
-
-    // Create prompt for OpenAI
-    const prompt = `
-    I need to recommend volunteer events to a user based on their interests and search history.
-
-    User interests: ${interests || 'Not specified'}
+    // Create an array of keywords from the interests string
+    const keywordArray = interests.toLowerCase().split(/[,\s]+/).filter((k: string) => k.length > 2)
     
-    User's recent search queries: ${searchHistory && searchHistory.length > 0 ? searchHistory.join(', ') : 'None'}
+    // Also consider search history keywords
+    const historyKeywords = searchHistory
+      .join(' ')
+      .toLowerCase()
+      .split(/[,\s]+/)
+      .filter((k: string) => k.length > 2)
     
-    Available events:
-    ${JSON.stringify(eventsFormatted, null, 2)}
-    
-    Based on the user's interests and search history, recommend up to 3 events from the available list.
-    Always return 3 events if possible, even if the match isn't perfect.
-    If there aren't clear matches, recommend events that are popular or diverse categories.
-    
-    Format your response as valid JSON with this structure:
-    {
-      "recommendations": [
-        {
-          "id": "event-id",
-          "reason": "A brief explanation of why this event was recommended"
-        }
-      ]
-    }
-    ONLY include the JSON in your response, with no other text.
-    `;
+    // Combine all keywords for scoring (with duplicates removed)
+    const allKeywords = [...new Set([...keywordArray, ...historyKeywords])]
 
-    console.log('Calling OpenAI API');
-    // Call OpenAI API
-    const response = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${openAIApiKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages: [
-          { role: 'system', content: 'You are a recommendation system that suggests volunteer events based on user interests and search history. Always provide recommendations even if the match is not perfect.' },
-          { role: 'user', content: prompt }
-        ],
-        temperature: 0.5,
-      }),
-    });
-
-    if (!response.ok) {
-      const errorData = await response.json();
-      console.error('OpenAI API error:', errorData);
-      throw new Error(`OpenAI API error: ${JSON.stringify(errorData)}`);
-    }
-
-    const data = await response.json();
-    const recommendationsText = data.choices[0].message.content;
-    console.log('OpenAI response:', recommendationsText);
-    
-    // Parse recommendations
-    let recommendations;
-    try {
-      recommendations = JSON.parse(recommendationsText);
-    } catch (e) {
-      console.error("Failed to parse OpenAI response:", recommendationsText);
+    // Score events based on keyword matches
+    const scoredEvents = events.map((event) => {
+      const title = event.title?.toLowerCase() || ''
+      const description = event.description?.toLowerCase() || ''
+      const location = event.location?.toLowerCase() || ''
+      const category = event.category?.toLowerCase() || ''
       
-      // If parsing fails, try to extract JSON using regex
-      const jsonMatch = recommendationsText.match(/\{[\s\S]*\}/);
-      if (jsonMatch) {
-        try {
-          recommendations = JSON.parse(jsonMatch[0]);
-        } catch (e2) {
-          console.error("Failed to parse extracted JSON:", jsonMatch[0]);
-          recommendations = { recommendations: [] };
+      let score = 0
+      let matchedKeywords: string[] = []
+      
+      // Score based on keywords from current search
+      keywordArray.forEach((keyword: string) => {
+        if (title.includes(keyword)) {
+          score += 3
+          if (!matchedKeywords.includes(keyword)) matchedKeywords.push(keyword)
         }
-      } else {
-        recommendations = { recommendations: [] };
+        if (description.includes(keyword)) {
+          score += 2
+          if (!matchedKeywords.includes(keyword)) matchedKeywords.push(keyword)
+        }
+        if (location.includes(keyword)) {
+          score += 1
+          if (!matchedKeywords.includes(keyword)) matchedKeywords.push(keyword)
+        }
+        if (category && category.includes(keyword)) {
+          score += 4 // Higher score for category matches
+          if (!matchedKeywords.includes(keyword)) matchedKeywords.push(keyword)
+        }
+      })
+      
+      // Give a smaller boost for history keywords
+      historyKeywords.forEach((keyword: string) => {
+        if (title.includes(keyword)) score += 1
+        if (description.includes(keyword)) score += 0.5
+        if (category && category.includes(keyword)) score += 2
+      })
+      
+      // Check if any of the keywords match common categories even if not explicit
+      const categoryKeywords: Record<string, string[]> = {
+        'environment': ['nature', 'clean', 'green', 'plant', 'garden', 'eco', 'recycle', 'climate'],
+        'education': ['teach', 'learn', 'school', 'tutor', 'mentor', 'student', 'literacy', 'knowledge'],
+        'community': ['neighborhood', 'local', 'city', 'town', 'service', 'volunteer'],
+        'animal': ['pet', 'dog', 'cat', 'wildlife', 'rescue', 'shelter', 'veterinary'],
+        'health': ['medical', 'wellness', 'fitness', 'care', 'hospital', 'clinic', 'therapy'],
+        'art': ['music', 'paint', 'creative', 'dance', 'culture', 'theater', 'performance'],
+        'elderly': ['senior', 'aged', 'retirement', 'old', 'nursing', 'aging', 'geriatric'],
+        'disaster': ['emergency', 'relief', 'aid', 'crisis', 'help', 'humanitarian'],
+        'clothing': ['donate', 'garment', 'sorting', 'apparel', 'textile', 'fashion'],
+        'cleanup': ['waste', 'trash', 'litter', 'garbage', 'environment', 'recycling']
+      }
+      
+      // Check if category is implicitly matched
+      Object.entries(categoryKeywords).forEach(([categoryName, relatedWords]) => {
+        const isRelatedToCategory = relatedWords.some(word => 
+          allKeywords.includes(word) || 
+          title.includes(word) || 
+          description.includes(word)
+        )
+        
+        if (isRelatedToCategory && (category?.includes(categoryName) || !category)) {
+          score += 2
+          if (!matchedKeywords.includes(categoryName)) {
+            matchedKeywords.push(categoryName)
+          }
+        }
+      })
+      
+      return {
+        ...event,
+        score,
+        matchedKeywords
+      }
+    })
+    
+    // If user has registered for events, boost similar events
+    if (userId) {
+      const { data: userRegistrations } = await supabaseClient
+        .from('registrations')
+        .select('event_id')
+        .eq('user_id', userId)
+      
+      if (userRegistrations && userRegistrations.length > 0) {
+        const registeredEventIds = userRegistrations.map(reg => reg.event_id)
+        
+        // Get details of registered events
+        const { data: registeredEvents } = await supabaseClient
+          .from('events')
+          .select('*')
+          .in('id', registeredEventIds)
+        
+        if (registeredEvents && registeredEvents.length > 0) {
+          // Boost scores for events with same category
+          const registeredCategories = registeredEvents
+            .map(event => event.category)
+            .filter(Boolean) as string[]
+          
+          scoredEvents.forEach(event => {
+            if (event.category && registeredCategories.includes(event.category)) {
+              event.score += 3
+              event.matchedKeywords.push('based on your past registrations')
+            }
+          })
+        }
       }
     }
-
-    // If no recommendations were provided, return random events
-    if (!recommendations.recommendations || recommendations.recommendations.length === 0) {
-      console.log('No recommendations from OpenAI, using random events');
-      
-      // Select 3 random events
-      const randomEvents = [...events]
+    
+    // Sort events by score (highest first) and take top results
+    let recommendedEvents: RecommendedEvent[] = []
+    
+    // First try to get events with a non-zero score
+    const matchedEvents = scoredEvents
+      .filter(event => event.score > 0)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 3)
+    
+    if (matchedEvents.length > 0) {
+      recommendedEvents = matchedEvents.map(event => ({
+        id: event.id,
+        title: event.title,
+        date: event.date,
+        location: event.location,
+        description: event.description,
+        image_url: event.image_url,
+        category: event.category,
+        reason: event.matchedKeywords.length > 0 
+          ? `Matched: ${event.matchedKeywords.join(', ')}`
+          : 'Recommended based on your interests'
+      }))
+    } else {
+      // Fallback to random events if no matches
+      recommendedEvents = events
         .sort(() => 0.5 - Math.random())
         .slice(0, 3)
         .map(event => ({
-          ...event,
-          reason: `Trending event in ${event.category || 'your area'}`
-        }));
-      
-      return new Response(
-        JSON.stringify({ recommendedEvents: randomEvents }),
-        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+          id: event.id,
+          title: event.title,
+          date: event.date,
+          location: event.location,
+          description: event.description,
+          image_url: event.image_url,
+          category: event.category,
+          reason: 'Popular event you might enjoy'
+        }))
     }
 
-    // Match recommendations with full event data
-    const recommendedEvents = recommendations.recommendations.map(rec => {
-      const event = events.find(e => e.id === rec.id);
-      return event ? { ...event, reason: rec.reason } : null;
-    }).filter(Boolean);
-
-    // If we didn't get enough recommendations, add some random ones
-    if (recommendedEvents.length < 3 && events.length >= 3) {
-      console.log(`Only got ${recommendedEvents.length} recommendations, adding random events`);
-      
-      // Get IDs of already recommended events
-      const recommendedIds = recommendedEvents.map(e => e.id);
-      
-      // Filter out already recommended events and get random ones
-      const additionalEvents = events
-        .filter(e => !recommendedIds.includes(e.id))
-        .sort(() => 0.5 - Math.random())
-        .slice(0, 3 - recommendedEvents.length)
-        .map(event => ({
-          ...event,
-          reason: `Popular event you might be interested in`
-        }));
-      
-      recommendedEvents.push(...additionalEvents);
-    }
-
-    // Save search to history if userId is provided
-    if (userId && interests) {
-      console.log('Saving search to history:', { userId, interests });
-      const { error: insertError } = await supabase
-        .from('search_history')
-        .insert({
-          user_id: userId,
-          search_query: interests,
-          created_at: new Date().toISOString()
-        });
-        
-      if (insertError) {
-        console.error('Error saving search history:', insertError);
-      }
-    }
-
-    console.log(`Returning ${recommendedEvents.length} recommended events`);
     return new Response(
       JSON.stringify({ recommendedEvents }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      { headers: { 'Content-Type': 'application/json' } }
+    )
   } catch (error) {
-    console.error('Error in get-event-recommendations function:', error);
+    console.error('Error in recommendation function:', error)
     return new Response(
-      JSON.stringify({ error: error.message }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-    );
+      JSON.stringify({ 
+        error: 'Internal server error', 
+        message: error.message 
+      }),
+      { status: 500, headers: { 'Content-Type': 'application/json' } }
+    )
   }
-});
+})

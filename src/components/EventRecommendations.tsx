@@ -9,6 +9,7 @@ import { format } from "date-fns";
 import { Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
+import { Event } from "@/types/database";
 
 interface RecommendedEvent {
   id: string;
@@ -124,7 +125,11 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
           'community': ['neighborhood', 'local', 'city', 'town', 'service'],
           'animal': ['pet', 'dog', 'cat', 'wildlife', 'rescue', 'shelter'],
           'health': ['medical', 'wellness', 'fitness', 'care', 'hospital', 'clinic'],
-          'art': ['music', 'paint', 'creative', 'dance', 'culture', 'theater']
+          'art': ['music', 'paint', 'creative', 'dance', 'culture', 'theater'],
+          'elderly': ['senior', 'aged', 'retirement', 'old', 'nursing'],
+          'disaster': ['emergency', 'relief', 'aid', 'crisis', 'help'],
+          'clothing': ['donate', 'garment', 'sorting', 'apparel', 'textile'],
+          'cleanup': ['waste', 'trash', 'litter', 'garbage', 'environment']
         };
         
         // Check if category is implicitly matched
@@ -198,38 +203,14 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
       setError(null);
       
       try {
-        // First try to use the AI-powered recommendations
-        const response = await supabase.functions.invoke('get-event-recommendations', {
-          body: {
-            interests,
-            userId: user?.id,
-            searchHistory: searchHistory || []
-          }
-        });
-
-        if (response.error) {
-          console.error('Function error:', response.error);
-          // If AI recommendation failed, try keyword matching as fallback
-          const fallbackEvents = await getKeywordBasedRecommendations(interests);
-          
-          if (fallbackEvents.length > 0) {
-            setRecommendedEvents(fallbackEvents);
-            // Log that we're using fallback
-            console.log('Using keyword matching fallback recommendations');
-          } else {
-            throw new Error('No recommendations found with keyword matching');
-          }
-        } else if (!response.data || !response.data.recommendedEvents || response.data.recommendedEvents.length === 0) {
-          // If we got an empty response, use fallback
-          console.log('Empty response from AI, using fallback recommendations');
-          const fallbackEvents = await getKeywordBasedRecommendations(interests);
-          if (fallbackEvents.length > 0) {
-            setRecommendedEvents(fallbackEvents);
-          } else {
-            throw new Error('No recommendations available');
-          }
+        // First try to use the keyword-based recommendations
+        const recommendedEvents = await getKeywordBasedRecommendations(interests);
+        
+        if (recommendedEvents.length > 0) {
+          setRecommendedEvents(recommendedEvents);
+          console.log('Using keyword matching recommendations');
         } else {
-          setRecommendedEvents(response.data.recommendedEvents || []);
+          throw new Error('No recommendations found with keyword matching');
         }
 
         // Save search to history if user is logged in

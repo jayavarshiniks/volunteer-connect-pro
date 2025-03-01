@@ -10,6 +10,7 @@ import { format } from "date-fns";
 import EventRecommendations from "@/components/EventRecommendations";
 import DevEventSeeder from "@/components/DevEventSeeder";
 import { useAuth } from "@/contexts/AuthContext";
+import { Event } from "@/types/database";
 
 const Events = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ const Events = () => {
         .order('date', { ascending: true });
 
       if (error) throw error;
-      return data;
+      return data as Event[];
     }
   });
 
