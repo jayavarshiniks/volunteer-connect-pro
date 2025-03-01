@@ -156,6 +156,7 @@ const EventDetailsPage = () => {
             time={event.time}
             location={event.location}
             description={event.description}
+            category={event.category}
           />
           
           <OrganizationContact contact={event.organization_contact} />

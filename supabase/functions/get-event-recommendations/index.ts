@@ -71,6 +71,7 @@ serve(async (req) => {
       description: event.description,
       location: event.location,
       date: event.date,
+      category: event.category || 'Not specified',
       requirements: event.requirements || '',
     }));
 
@@ -80,12 +81,15 @@ serve(async (req) => {
 
     User interests: ${interests || 'Not specified'}
     
-    User's recent search queries: ${searchHistory ? searchHistory.join(', ') : 'None'}
+    User's recent search queries: ${searchHistory && searchHistory.length > 0 ? searchHistory.join(', ') : 'None'}
     
     Available events:
     ${JSON.stringify(eventsFormatted, null, 2)}
     
     Based on the user's interests and search history, recommend up to 3 events from the available list.
+    Always return 3 events if possible, even if the match isn't perfect.
+    If there aren't clear matches, recommend events that are popular or diverse categories.
+    
     Format your response as valid JSON with this structure:
     {
       "recommendations": [
@@ -109,7 +113,7 @@ serve(async (req) => {
       body: JSON.stringify({
         model: 'gpt-4o-mini',
         messages: [
-          { role: 'system', content: 'You are a recommendation system that suggests volunteer events based on user interests and search history.' },
+          { role: 'system', content: 'You are a recommendation system that suggests volunteer events based on user interests and search history. Always provide recommendations even if the match is not perfect.' },
           { role: 'user', content: prompt }
         ],
         temperature: 0.5,
@@ -132,7 +136,38 @@ serve(async (req) => {
       recommendations = JSON.parse(recommendationsText);
     } catch (e) {
       console.error("Failed to parse OpenAI response:", recommendationsText);
-      recommendations = { recommendations: [] };
+      
+      // If parsing fails, try to extract JSON using regex
+      const jsonMatch = recommendationsText.match(/\{[\s\S]*\}/);
+      if (jsonMatch) {
+        try {
+          recommendations = JSON.parse(jsonMatch[0]);
+        } catch (e2) {
+          console.error("Failed to parse extracted JSON:", jsonMatch[0]);
+          recommendations = { recommendations: [] };
+        }
+      } else {
+        recommendations = { recommendations: [] };
+      }
+    }
+
+    // If no recommendations were provided, return random events
+    if (!recommendations.recommendations || recommendations.recommendations.length === 0) {
+      console.log('No recommendations from OpenAI, using random events');
+      
+      // Select 3 random events
+      const randomEvents = [...events]
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3)
+        .map(event => ({
+          ...event,
+          reason: `Trending event in ${event.category || 'your area'}`
+        }));
+      
+      return new Response(
+        JSON.stringify({ recommendedEvents: randomEvents }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     // Match recommendations with full event data
@@ -140,6 +175,26 @@ serve(async (req) => {
       const event = events.find(e => e.id === rec.id);
       return event ? { ...event, reason: rec.reason } : null;
     }).filter(Boolean);
+
+    // If we didn't get enough recommendations, add some random ones
+    if (recommendedEvents.length < 3 && events.length >= 3) {
+      console.log(`Only got ${recommendedEvents.length} recommendations, adding random events`);
+      
+      // Get IDs of already recommended events
+      const recommendedIds = recommendedEvents.map(e => e.id);
+      
+      // Filter out already recommended events and get random ones
+      const additionalEvents = events
+        .filter(e => !recommendedIds.includes(e.id))
+        .sort(() => 0.5 - Math.random())
+        .slice(0, 3 - recommendedEvents.length)
+        .map(event => ({
+          ...event,
+          reason: `Popular event you might be interested in`
+        }));
+      
+      recommendedEvents.push(...additionalEvents);
+    }
 
     // Save search to history if userId is provided
     if (userId && interests) {

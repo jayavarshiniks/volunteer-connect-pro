@@ -49,7 +49,8 @@ const Events = () => {
 
   const filteredEvents = events.filter(event =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    event.location.toLowerCase().includes(searchQuery.toLowerCase())
+    event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    (event.category && event.category.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleViewDetails = (eventId: string) => {
@@ -70,7 +71,7 @@ const Events = () => {
         <div className="w-full max-w-md">
           <Input
             type="text"
-            placeholder="Search events by title or location..."
+            placeholder="Search events by title, location, or category..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="w-full"
@@ -99,6 +100,13 @@ const Events = () => {
                   📅 {format(new Date(event.date), 'PPP')} at {event.time}
                 </p>
                 <p className="text-gray-600 mb-2">📍 {event.location}</p>
+                
+                {event.category && (
+                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-2">
+                    {event.category}
+                  </span>
+                )}
+                
                 <p className="text-sm mb-4 line-clamp-2">{event.description}</p>
                 <div className="flex justify-between items-center">
                   <span className="text-sm text-gray-600">
