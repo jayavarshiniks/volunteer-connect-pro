@@ -173,6 +173,27 @@ const events = [
     requirements: 'Gloves and trash bags provided. Wear suitable clothing and footwear for outdoor work.',
     image_url: 'https://images.unsplash.com/photo-1618477460930-d8bphkea31a7?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80',
     category: 'Environment'
+  },
+  {
+    title: 'Blood Donation Drive Volunteer',
+    description: 'Help organize and facilitate a community blood donation drive. Tasks include checking in donors, providing refreshments, and assisting medical staff.',
+    requirements: 'Must be comfortable around medical procedures. No medical experience required.',
+    image_url: 'https://images.unsplash.com/photo-1615461066841-6116e61070a0?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80',
+    category: 'Health & Wellness'
+  },
+  {
+    title: 'Mental Health Awareness Workshop',
+    description: 'Support our mental health awareness workshop by helping with setup, registration, and engaging participants in activities designed to reduce stigma.',
+    requirements: 'Sensitivity to mental health issues. No specialized mental health knowledge required.',
+    image_url: 'https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?ixlib=rb-4.0.3&auto=format&fit=crop&w=1176&q=80',
+    category: 'Health & Wellness'
+  },
+  {
+    title: 'Tree Planting Initiative',
+    description: 'Help us improve urban tree coverage by planting saplings throughout the city. Learn proper planting techniques and help create a greener community.',
+    requirements: 'Able to do light physical labor. All tools and supplies provided.',
+    image_url: 'https://images.unsplash.com/photo-1596127504316-b2b8c5a47d15?ixlib=rb-4.0.3&auto=format&fit=crop&w=1170&q=80',
+    category: 'Environment'
   }
 ];
 

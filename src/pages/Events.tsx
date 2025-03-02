@@ -3,7 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
@@ -11,6 +11,7 @@ import EventRecommendations from "@/components/EventRecommendations";
 import DevEventSeeder from "@/components/DevEventSeeder";
 import { useAuth } from "@/contexts/AuthContext";
 import { Event } from "@/types/database";
+import { toast } from "sonner";
 
 const Events = () => {
   const navigate = useNavigate();
@@ -58,11 +59,36 @@ const Events = () => {
     navigate(`/events/${eventId}`);
   };
 
+  useEffect(() => {
+    // If there are 20+ events, show a toast to let the user know that events have been loaded
+    if (events.length >= 20 && !isLoading) {
+      toast.success(`${events.length} volunteer events available!`);
+    }
+  }, [events, isLoading]);
+
   if (isLoading) {
-    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <h1 className="text-3xl font-bold mb-6">Volunteer Events</h1>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[...Array(6)].map((_, index) => (
+            <Card key={index} className="overflow-hidden h-96 animate-pulse">
+              <div className="w-full h-48 bg-gray-200"></div>
+              <div className="p-6">
+                <div className="h-6 bg-gray-200 rounded mb-4"></div>
+                <div className="h-4 bg-gray-200 rounded mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded mb-4"></div>
+                <div className="h-10 bg-gray-200 rounded"></div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      </div>
+    );
   }
 
   const isAdmin = userProfile?.role === 'organization';
+  const uniqueCategories = Array.from(new Set(events.map(event => event.category).filter(Boolean)));
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -79,6 +105,29 @@ const Events = () => {
           />
         </div>
 
+        {/* Category filters */}
+        {uniqueCategories.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <Button 
+              variant={searchQuery === "" ? "default" : "outline"} 
+              size="sm"
+              onClick={() => setSearchQuery("")}
+            >
+              All
+            </Button>
+            {uniqueCategories.map(category => (
+              <Button 
+                key={category} 
+                variant={searchQuery.toLowerCase() === category?.toLowerCase() ? "default" : "outline"}
+                size="sm"
+                onClick={() => setSearchQuery(category || "")}
+              >
+                {category}
+              </Button>
+            ))}
+          </div>
+        )}
+
         {/* AI-powered recommendations based on search query */}
         {searchQuery && <EventRecommendations interests={searchQuery} />}
 
@@ -87,7 +136,7 @@ const Events = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredEvents.map((event) => (
-            <Card key={event.id} className="overflow-hidden">
+            <Card key={event.id} className="overflow-hidden flex flex-col h-full">
               {event.image_url && (
                 <img 
                   src={event.image_url} 
@@ -95,7 +144,7 @@ const Events = () => {
                   className="w-full h-48 object-cover"
                 />
               )}
-              <div className="p-6">
+              <div className="p-6 flex-1 flex flex-col">
                 <h3 className="text-xl font-semibold mb-2">{event.title}</h3>
                 <p className="text-gray-600 mb-2">
                   📅 {format(new Date(event.date), 'PPP')} at {event.time}
@@ -103,13 +152,13 @@ const Events = () => {
                 <p className="text-gray-600 mb-2">📍 {event.location}</p>
                 
                 {event.category && (
-                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-2">
+                  <span className="inline-block bg-blue-100 text-blue-800 text-xs px-2 py-1 rounded-full mb-2 self-start">
                     {event.category}
                   </span>
                 )}
                 
-                <p className="text-sm mb-4 line-clamp-2">{event.description}</p>
-                <div className="flex justify-between items-center">
+                <p className="text-sm mb-4 line-clamp-2 flex-grow">{event.description}</p>
+                <div className="flex justify-between items-center mt-auto">
                   <span className="text-sm text-gray-600">
                     {event.volunteers_needed - event.current_volunteers} spots left
                   </span>
@@ -124,6 +173,13 @@ const Events = () => {
             </Card>
           ))}
         </div>
+
+        {filteredEvents.length === 0 && (
+          <div className="text-center py-10">
+            <p className="text-gray-500 mb-4">No events found matching your search criteria.</p>
+            <Button onClick={() => setSearchQuery("")}>Clear Search</Button>
+          </div>
+        )}
       </div>
     </div>
   );

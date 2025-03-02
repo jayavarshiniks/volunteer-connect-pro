@@ -1,3 +1,4 @@
+
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -111,16 +112,18 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
         });
         
         const categoryKeywords = {
-          'environment': ['nature', 'clean', 'green', 'plant', 'garden', 'eco', 'recycle'],
-          'education': ['teach', 'learn', 'school', 'tutor', 'mentor', 'student', 'literacy'],
-          'community': ['neighborhood', 'local', 'city', 'town', 'service'],
-          'animal': ['pet', 'dog', 'cat', 'wildlife', 'rescue', 'shelter'],
-          'health': ['medical', 'wellness', 'fitness', 'care', 'hospital', 'clinic'],
-          'art': ['music', 'paint', 'creative', 'dance', 'culture', 'theater'],
-          'elderly': ['senior', 'aged', 'retirement', 'old', 'nursing'],
-          'disaster': ['emergency', 'relief', 'aid', 'crisis', 'help'],
-          'clothing': ['donate', 'garment', 'sorting', 'apparel', 'textile'],
-          'cleanup': ['waste', 'trash', 'litter', 'garbage', 'environment']
+          'environment': ['nature', 'clean', 'green', 'plant', 'garden', 'eco', 'recycle', 'beach', 'tree', 'trail', 'park', 'conservation'],
+          'education': ['teach', 'learn', 'school', 'tutor', 'mentor', 'student', 'literacy', 'reading', 'education', 'knowledge', 'skill'],
+          'community': ['neighborhood', 'local', 'city', 'town', 'service', 'community', 'civic', 'society', 'group', 'public'],
+          'animal welfare': ['pet', 'dog', 'cat', 'wildlife', 'rescue', 'shelter', 'adoption', 'protection', 'habitat', 'species', 'animal'],
+          'health': ['medical', 'wellness', 'fitness', 'care', 'hospital', 'clinic', 'health', 'blood', 'donation', 'mental', 'awareness'],
+          'art': ['music', 'paint', 'creative', 'dance', 'culture', 'theater', 'performance', 'exhibition', 'gallery', 'drawing', 'craft'],
+          'elderly care': ['senior', 'aged', 'retirement', 'old', 'nursing', 'care', 'visit', 'elderly', 'companionship', 'support'],
+          'disaster relief': ['emergency', 'relief', 'aid', 'crisis', 'help', 'disaster', 'support', 'recovery', 'assistance', 'coordination'],
+          'clothing donation': ['donate', 'garment', 'sorting', 'apparel', 'textile', 'clothes', 'clothing', 'distribution', 'collection', 'charity'],
+          'homelessness': ['shelter', 'homeless', 'housing', 'street', 'food', 'meal', 'service', 'support', 'distribute', 'charity'],
+          'youth': ['children', 'young', 'teen', 'kid', 'youth', 'student', 'mentor', 'coach', 'teach', 'guide'],
+          'sports': ['athletics', 'game', 'physical', 'team', 'coaching', 'recreation', 'activity', 'sports', 'competition']
         };
         
         Object.entries(categoryKeywords).forEach(([categoryName, relatedWords]) => {
@@ -161,6 +164,27 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
         }));
       
       if (matchedEvents.length === 0) {
+        // If no direct matches, find some based on categories
+        const categoryMatches = events
+          .filter(event => event.category)
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 3)
+          .map(event => ({
+            id: event.id,
+            title: event.title,
+            date: event.date,
+            location: event.location,
+            description: event.description,
+            image_url: event.image_url,
+            category: event.category,
+            reason: `Recommended ${event.category} event you might enjoy`
+          }));
+          
+        if (categoryMatches.length > 0) {
+          return categoryMatches;
+        }
+        
+        // Last resort - just show random events
         matchedEvents = events
           .sort(() => 0.5 - Math.random())
           .slice(0, 3)
