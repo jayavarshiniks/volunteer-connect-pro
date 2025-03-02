@@ -47,7 +47,7 @@ const EventDetailsPage = () => {
     enabled: !!user
   });
 
-  // Query to fetch volunteers who registered for this event
+  // Query to fetch volunteers who registered for this event with their additional details
   const { data: volunteers } = useQuery({
     queryKey: ['event-volunteers', id],
     queryFn: async () => {
@@ -57,6 +57,9 @@ const EventDetailsPage = () => {
           id,
           registration_time,
           user_id,
+          emergency_contact,
+          dietary_restrictions,
+          notes,
           profiles:user_id (
             full_name,
             phone,
@@ -66,6 +69,7 @@ const EventDetailsPage = () => {
         .eq('event_id', id);
 
       if (error) throw error;
+      console.log("Fetched volunteers:", data);
       return data;
     },
     enabled: !!id && userProfile?.role === 'organization'
@@ -166,7 +170,7 @@ const EventDetailsPage = () => {
             volunteersNeeded={event.volunteers_needed}
           />
           
-          {isOwner && volunteers && volunteers.length > 0 && (
+          {isOwner && volunteers && (
             <RegisteredVolunteers volunteers={volunteers} />
           )}
           

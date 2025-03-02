@@ -4,7 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
 import EventRecommendations from "@/components/EventRecommendations";
@@ -17,6 +17,7 @@ const Events = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState("");
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: userProfile } = useQuery({
     queryKey: ['user-profile', user?.id],
@@ -37,6 +38,7 @@ const Events = () => {
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
+      console.log("Fetching events...");
       const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
       const { data, error } = await supabase
         .from('events')
@@ -44,10 +46,38 @@ const Events = () => {
         .gte('date', today) // Only get events that are today or in the future
         .order('date', { ascending: true });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching events:", error);
+        throw error;
+      }
+      
+      console.log("Fetched events:", data);
       return data as Event[];
     }
   });
+
+  // Set up real-time updates for events
+  useEffect(() => {
+    const channel = supabase
+      .channel('events-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events'
+        },
+        () => {
+          console.log("Events table changed, refreshing data...");
+          queryClient.invalidateQueries({ queryKey: ['events'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
 
   const filteredEvents = events.filter(event =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -89,6 +119,9 @@ const Events = () => {
 
   const isAdmin = userProfile?.role === 'organization';
   const uniqueCategories = Array.from(new Set(events.map(event => event.category).filter(Boolean)));
+
+  console.log("Filtered events:", filteredEvents);
+  console.log("Unique categories:", uniqueCategories);
 
   return (
     <div className="container mx-auto px-4 py-8">

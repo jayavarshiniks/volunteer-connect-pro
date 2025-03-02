@@ -80,6 +80,8 @@ const EventRegistration = () => {
     setLoading(true);
 
     try {
+      console.log("Starting registration process...");
+      
       // Update user profile with the new information
       const { error: profileError } = await supabase
         .from('profiles')
@@ -90,18 +92,26 @@ const EventRegistration = () => {
         .eq('id', user.id);
 
       if (profileError) throw profileError;
+      console.log("Profile updated successfully");
 
-      // Insert registration record
+      // Store the registration details in the registrations table
+      const registrationDetails = {
+        event_id: id,
+        user_id: user.id,
+        registration_time: new Date().toISOString(),
+        emergency_contact: formData.emergency_contact,
+        dietary_restrictions: formData.dietary_restrictions,
+        notes: formData.notes
+      };
+
       const { error: registrationError } = await supabase
         .from('registrations')
-        .insert({
-          event_id: id,
-          user_id: user.id
-        });
+        .insert(registrationDetails);
 
       if (registrationError) throw registrationError;
+      console.log("Registration created successfully");
 
-      // Update volunteer count
+      // Update volunteer count in the event
       const { error: updateError } = await supabase
         .from('events')
         .update({ 
@@ -110,10 +120,15 @@ const EventRegistration = () => {
         .eq('id', id);
 
       if (updateError) throw updateError;
+      console.log("Event volunteer count updated successfully");
+
+      // Notify organizer via email (would need an edge function in production)
+      console.log("Would send notification to organizer:", event.organization_contact);
 
       // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
+      await queryClient.invalidateQueries({ queryKey: ['events'] });
 
       // Create registration data for success page
       const registrationData = {
@@ -134,6 +149,7 @@ const EventRegistration = () => {
         state: { registrationData } 
       });
     } catch (error: any) {
+      console.error("Registration error:", error);
       toast.error(error.message);
     } finally {
       setLoading(false);
