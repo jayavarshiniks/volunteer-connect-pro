@@ -32,7 +32,7 @@ const DevEventSeeder = () => {
         {isSeeding ? "Creating Events..." : "Create Sample Events"}
       </Button>
       <p className="text-xs text-gray-500 mt-2">
-        This will create several sample upcoming events with random dates and locations.
+        This will create several sample upcoming events with random dates, locations, and categories.
       </p>
     </div>
   );

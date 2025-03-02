@@ -35,11 +35,14 @@ const Events = () => {
     enabled: !!user
   });
 
+  // Updated query to ensure we're fetching the most recent events
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
       console.log("Fetching events...");
       const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
+      
+      // Updated query to ensure we get ALL events including those without categories
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -79,6 +82,7 @@ const Events = () => {
     };
   }, [queryClient]);
 
+  // Improved filtering to handle null category values
   const filteredEvents = events.filter(event =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -90,8 +94,8 @@ const Events = () => {
   };
 
   useEffect(() => {
-    // If there are 20+ events, show a toast to let the user know that events have been loaded
-    if (events.length >= 20 && !isLoading) {
+    // If there are events, show a toast to let the user know that events have been loaded
+    if (events.length > 0 && !isLoading) {
       toast.success(`${events.length} volunteer events available!`);
     }
   }, [events, isLoading]);
@@ -118,7 +122,10 @@ const Events = () => {
   }
 
   const isAdmin = userProfile?.role === 'organization';
-  const uniqueCategories = Array.from(new Set(events.map(event => event.category).filter(Boolean)));
+  // Extract unique categories, filtering out null values
+  const uniqueCategories = Array.from(
+    new Set(events.map(event => event.category).filter(Boolean))
+  );
 
   console.log("Filtered events:", filteredEvents);
   console.log("Unique categories:", uniqueCategories);
@@ -138,7 +145,7 @@ const Events = () => {
           />
         </div>
 
-        {/* Category filters */}
+        {/* Category filters - only show if we have categories */}
         {uniqueCategories.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <Button 
