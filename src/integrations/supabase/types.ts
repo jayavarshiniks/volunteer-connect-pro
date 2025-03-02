@@ -124,20 +124,29 @@ export type Database = {
       }
       registrations: {
         Row: {
+          dietary_restrictions: string | null
+          emergency_contact: string | null
           event_id: string | null
           id: string
+          notes: string | null
           registration_time: string | null
           user_id: string | null
         }
         Insert: {
+          dietary_restrictions?: string | null
+          emergency_contact?: string | null
           event_id?: string | null
           id?: string
+          notes?: string | null
           registration_time?: string | null
           user_id?: string | null
         }
         Update: {
+          dietary_restrictions?: string | null
+          emergency_contact?: string | null
           event_id?: string | null
           id?: string
+          notes?: string | null
           registration_time?: string | null
           user_id?: string | null
         }
