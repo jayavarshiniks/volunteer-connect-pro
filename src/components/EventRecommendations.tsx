@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -33,7 +32,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
   const [recommendedEvents, setRecommendedEvents] = useState<RecommendedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch user's search history
   const { data: searchHistory } = useQuery({
     queryKey: ['search-history', user?.id],
     queryFn: async () => {
@@ -51,13 +49,10 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
     enabled: !!user?.id
   });
 
-  // Enhanced function to find keyword matches when AI is unavailable
   const getKeywordBasedRecommendations = async (keywords: string) => {
     try {
-      // Get today's date in YYYY-MM-DD format
       const today = new Date().toISOString().split('T')[0];
       
-      // Fetch upcoming events
       const { data: events, error } = await supabase
         .from('events')
         .select('*')
@@ -67,10 +62,8 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
       if (error) throw error;
       if (!events || events.length === 0) return [];
       
-      // Create an array of keywords from the interests string
       const keywordArray = keywords.toLowerCase().split(/[,\s]+/).filter(k => k.length > 2);
       
-      // If no valid keywords, get random events
       if (keywordArray.length === 0) {
         const randomEvents = events
           .sort(() => 0.5 - Math.random())
@@ -89,7 +82,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
         return randomEvents;
       }
       
-      // Score events based on keyword matches in title, description, location, and category
       const scoredEvents = events.map(event => {
         const title = event.title?.toLowerCase() || '';
         const description = event.description?.toLowerCase() || '';
@@ -113,12 +105,11 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
             if (!matchedKeywords.includes(keyword)) matchedKeywords.push(keyword);
           }
           if (category && category.includes(keyword)) {
-            score += 4; // Higher score for category matches
+            score += 4;
             if (!matchedKeywords.includes(keyword)) matchedKeywords.push(keyword);
           }
         });
         
-        // Check if any of the keywords match common categories even if not explicit
         const categoryKeywords = {
           'environment': ['nature', 'clean', 'green', 'plant', 'garden', 'eco', 'recycle'],
           'education': ['teach', 'learn', 'school', 'tutor', 'mentor', 'student', 'literacy'],
@@ -132,7 +123,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
           'cleanup': ['waste', 'trash', 'litter', 'garbage', 'environment']
         };
         
-        // Check if category is implicitly matched
         Object.entries(categoryKeywords).forEach(([categoryName, relatedWords]) => {
           const isRelatedToCategory = relatedWords.some(word => 
             keywordArray.includes(word) || 
@@ -155,7 +145,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
         };
       });
       
-      // Filter events with at least one keyword match and sort by score
       let matchedEvents = scoredEvents
         .filter(event => event.score > 0)
         .sort((a, b) => b.score - a.score)
@@ -171,7 +160,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
           reason: `Matched: ${event.matchedKeywords.join(', ')}`
         }));
       
-      // If no matches, return random events
       if (matchedEvents.length === 0) {
         matchedEvents = events
           .sort(() => 0.5 - Math.random())
@@ -203,7 +191,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
       setError(null);
       
       try {
-        // First try to use the keyword-based recommendations
         const recommendedEvents = await getKeywordBasedRecommendations(interests);
         
         if (recommendedEvents.length > 0) {
@@ -213,7 +200,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
           throw new Error('No recommendations found with keyword matching');
         }
 
-        // Save search to history if user is logged in
         if (user?.id) {
           await supabase
             .from('search_history')
@@ -227,7 +213,6 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
         setError(error instanceof Error ? error.message : 'Unknown error');
         
         try {
-          // One last attempt to get any events if all else fails
           const today = new Date().toISOString().split('T')[0];
           const { data: randomEvents } = await supabase
             .from('events')
@@ -248,7 +233,7 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
             }));
             
             setRecommendedEvents(formattedEvents);
-            setError(null); // Clear error if we can show something
+            setError(null);
           } else {
             toast.error('Failed to get event recommendations');
           }

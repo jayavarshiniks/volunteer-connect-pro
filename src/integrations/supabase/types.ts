@@ -11,6 +11,7 @@ export type Database = {
     Tables: {
       events: {
         Row: {
+          category: string | null
           created_at: string
           current_volunteers: number
           date: string
@@ -29,6 +30,7 @@ export type Database = {
           volunteers_needed: number
         }
         Insert: {
+          category?: string | null
           created_at?: string
           current_volunteers?: number
           date: string
@@ -47,6 +49,7 @@ export type Database = {
           volunteers_needed: number
         }
         Update: {
+          category?: string | null
           created_at?: string
           current_volunteers?: number
           date?: string
