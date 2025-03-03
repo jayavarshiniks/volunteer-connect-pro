@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -34,7 +35,7 @@ const CreateEvent = () => {
   useEffect(() => {
     if (!window.google) {
       const googleMapsScript = document.createElement('script');
-      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AlzaSyOdOhoFdBnw3QOgUXp4qjRPT0tG1htpb-g&libraries=places&callback=initMap`;
+      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyOdOhoFdBnw3QOgUXp4qjRPT0tG1htpb-g&libraries=places&callback=initMap`;
       googleMapsScript.async = true;
       googleMapsScript.defer = true;
       window.initMap = initializeMap;
