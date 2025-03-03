@@ -9,7 +9,6 @@ import { format } from "date-fns";
 import { Sparkles } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Event } from "@/types/database";
 
 interface RecommendedEvent {
   id: string;
@@ -32,6 +31,7 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
   const [isLoading, setIsLoading] = useState(false);
   const [recommendedEvents, setRecommendedEvents] = useState<RecommendedEvent[]>([]);
   const [error, setError] = useState<string | null>(null);
+  const [useAI, setUseAI] = useState(true);
 
   const { data: searchHistory } = useQuery({
     queryKey: ['search-history', user?.id],
@@ -49,6 +49,30 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
     },
     enabled: !!user?.id
   });
+
+  const getAIRecommendations = async (interests: string, userId?: string) => {
+    try {
+      const response = await supabase.functions.invoke('ai-event-recommendations', {
+        body: { interests, userId },
+      });
+
+      if (response.error) {
+        console.error('AI recommendation error:', response.error);
+        throw new Error(response.error.message || 'Error getting AI recommendations');
+      }
+
+      if (!response.data || !Array.isArray(response.data)) {
+        console.error('Invalid response format from AI recommendations:', response.data);
+        throw new Error('Invalid response from AI recommendations');
+      }
+
+      console.log('AI recommendations:', response.data);
+      return response.data;
+    } catch (error) {
+      console.error('Failed to get AI recommendations:', error);
+      throw error;
+    }
+  };
 
   const getKeywordBasedRecommendations = async (keywords: string) => {
     try {
@@ -215,16 +239,36 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
       setError(null);
       
       try {
-        const recommendedEvents = await getKeywordBasedRecommendations(interests);
+        let recommendedEventsData;
         
-        if (recommendedEvents.length > 0) {
-          setRecommendedEvents(recommendedEvents);
-          console.log('Using keyword matching recommendations');
+        // Try to get AI recommendations first
+        if (useAI) {
+          try {
+            console.log('Attempting to get AI recommendations');
+            recommendedEventsData = await getAIRecommendations(interests, user?.id);
+            console.log('Using AI-powered recommendations');
+          } catch (aiError) {
+            console.error('AI recommendations failed, falling back to keyword matching:', aiError);
+            setUseAI(false);
+            // If AI recommendations fail, fall back to keyword matching
+            recommendedEventsData = await getKeywordBasedRecommendations(interests);
+            console.log('Falling back to keyword matching recommendations');
+          }
         } else {
-          throw new Error('No recommendations found with keyword matching');
+          // If useAI is false, just use keyword matching
+          recommendedEventsData = await getKeywordBasedRecommendations(interests);
+          console.log('Using keyword matching recommendations');
+        }
+        
+        if (recommendedEventsData.length > 0) {
+          setRecommendedEvents(recommendedEventsData);
+        } else {
+          throw new Error('No recommendations found');
         }
 
-        if (user?.id) {
+        // We don't need to manually add to search history in the keyword-based case
+        // as the AI edge function already handles that
+        if (!useAI && user?.id) {
           await supabase
             .from('search_history')
             .insert({
@@ -271,7 +315,7 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
     };
 
     getRecommendations();
-  }, [interests, user?.id, searchHistory]);
+  }, [interests, user?.id, searchHistory, useAI]);
 
   if (isLoading) {
     return (
@@ -317,7 +361,7 @@ const EventRecommendations = ({ interests }: EventRecommendationsProps) => {
     <div className="my-6">
       <h2 className="text-xl font-semibold mb-4 flex items-center">
         <Sparkles className="w-5 h-5 mr-2 text-yellow-500" />
-        Recommended For You
+        {useAI ? "AI-Powered Recommendations" : "Recommended For You"}
       </h2>
       <div className="grid grid-cols-1 gap-4">
         {recommendedEvents.map((event) => (
