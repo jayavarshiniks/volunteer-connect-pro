@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -32,11 +31,10 @@ const CreateEvent = () => {
   const markerRef = useRef<any>(null);
   const geocoderRef = useRef<any>(null);
 
-  // Load Google Maps API
   useEffect(() => {
     if (!window.google) {
       const googleMapsScript = document.createElement('script');
-      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyD9d0O2Z8YVbVZz_vj2g1qyJNbfyPvMiDU&libraries=places&callback=initMap`;
+      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AlzaSyOdOhoFdBnw3QOgUXp4qjRPT0tG1htpb-g&libraries=places&callback=initMap`;
       googleMapsScript.async = true;
       googleMapsScript.defer = true;
       window.initMap = initializeMap;
@@ -51,7 +49,6 @@ const CreateEvent = () => {
     }
   }, []);
 
-  // Initialize map
   const initializeMap = () => {
     if (mapRef.current && window.google) {
       const defaultLocation = { lat: 37.7749, lng: -122.4194 }; // Default to San Francisco
@@ -67,7 +64,6 @@ const CreateEvent = () => {
       mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions);
       geocoderRef.current = new window.google.maps.Geocoder();
       
-      // Add a marker
       markerRef.current = new window.google.maps.Marker({
         position: defaultLocation,
         map: mapInstanceRef.current,
@@ -75,7 +71,6 @@ const CreateEvent = () => {
         animation: window.google.maps.Animation.DROP,
       });
       
-      // Add click event to map
       window.google.maps.event.addListener(mapInstanceRef.current, 'click', (event: any) => {
         const clickedLocation = {
           lat: event.latLng.lat(),
@@ -84,7 +79,6 @@ const CreateEvent = () => {
         setMarkerPosition(clickedLocation);
       });
       
-      // Add drag end event to marker
       window.google.maps.event.addListener(markerRef.current, 'dragend', () => {
         const position = markerRef.current.getPosition();
         const markerLocation = {
@@ -95,16 +89,13 @@ const CreateEvent = () => {
         getAddressFromCoordinates(markerLocation);
       });
       
-      // Initialize the search box
       const input = document.getElementById('location-search') as HTMLInputElement;
       const searchBox = new window.google.maps.places.SearchBox(input);
       
-      // Bias the search box results towards the current map viewport
       mapInstanceRef.current.addListener('bounds_changed', () => {
         searchBox.setBounds(mapInstanceRef.current.getBounds());
       });
       
-      // Listen for the event fired when the user selects a prediction
       searchBox.addListener('places_changed', () => {
         const places = searchBox.getPlaces();
         if (places.length === 0) return;
@@ -112,11 +103,9 @@ const CreateEvent = () => {
         const place = places[0];
         if (!place.geometry || !place.geometry.location) return;
         
-        // Center map on the selected place
         mapInstanceRef.current.setCenter(place.geometry.location);
         mapInstanceRef.current.setZoom(15);
         
-        // Update marker position
         const newLocation = {
           lat: place.geometry.location.lat(),
           lng: place.geometry.location.lng()
@@ -128,7 +117,6 @@ const CreateEvent = () => {
     }
   };
   
-  // Set marker position
   const setMarkerPosition = (location: {lat: number, lng: number}) => {
     if (markerRef.current && window.google) {
       markerRef.current.setPosition(location);
@@ -137,7 +125,6 @@ const CreateEvent = () => {
     }
   };
   
-  // Get address from coordinates using geocoder
   const getAddressFromCoordinates = (location: {lat: number, lng: number}) => {
     if (geocoderRef.current) {
       geocoderRef.current.geocode({ location }, (results: any, status: any) => {
@@ -167,7 +154,6 @@ const CreateEvent = () => {
           setCoordinates(location);
           setUseCurrentLocation(true);
           
-          // Update map and marker if map is loaded
           if (mapInstanceRef.current && markerRef.current) {
             mapInstanceRef.current.setCenter(location);
             setMarkerPosition(location);
@@ -213,7 +199,6 @@ const CreateEvent = () => {
         imageUrl = publicUrl;
       }
 
-      // Ensure we have the location name from the map
       const finalLocation = locationName || (coordinates ? `${coordinates.lat}, ${coordinates.lng}` : String(formData.get('location')));
 
       const eventData = {
@@ -316,7 +301,6 @@ const CreateEvent = () => {
               </Button>
             </div>
             
-            {/* Map container */}
             <div 
               ref={mapRef} 
               className="w-full h-64 bg-gray-100 rounded-md mb-2 border border-gray-200"

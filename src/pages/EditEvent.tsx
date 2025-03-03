@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -6,11 +5,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, Upload, Trash2, AlertTriangle } from "lucide-react";
+import { MapPin, Upload, Trash2, AlertTriangle, Search } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -33,6 +32,12 @@ const EditEvent = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
+  const [locationName, setLocationName] = useState("");
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -42,7 +47,119 @@ const EditEvent = () => {
     volunteers_needed: 0,
     requirements: '',
     organization_contact: '',
+    category: ''
   });
+
+  useEffect(() => {
+    if (!window.google) {
+      const googleMapsScript = document.createElement('script');
+      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AlzaSyOdOhoFdBnw3QOgUXp4qjRPT0tG1htpb-g&libraries=places&callback=initMap`;
+      googleMapsScript.async = true;
+      googleMapsScript.defer = true;
+      window.initMap = initializeMap;
+      document.head.appendChild(googleMapsScript);
+      
+      return () => {
+        window.google = undefined;
+        document.head.removeChild(googleMapsScript);
+      };
+    } else if (mapRef.current && !mapInstanceRef.current) {
+      initializeMap();
+    }
+  }, []);
+  
+  const initializeMap = () => {
+    if (mapRef.current && window.google) {
+      const initialLocation = coordinates || { lat: 37.7749, lng: -122.4194 };
+      
+      const mapOptions = {
+        zoom: 13,
+        center: initialLocation,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      };
+      
+      mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions);
+      geocoderRef.current = new window.google.maps.Geocoder();
+      
+      markerRef.current = new window.google.maps.Marker({
+        position: initialLocation,
+        map: mapInstanceRef.current,
+        draggable: true,
+        animation: window.google.maps.Animation.DROP,
+      });
+      
+      window.google.maps.event.addListener(mapInstanceRef.current, 'click', (event: any) => {
+        const clickedLocation = {
+          lat: event.latLng.lat(),
+          lng: event.latLng.lng()
+        };
+        setMarkerPosition(clickedLocation);
+      });
+      
+      window.google.maps.event.addListener(markerRef.current, 'dragend', () => {
+        const position = markerRef.current.getPosition();
+        const markerLocation = {
+          lat: position.lat(),
+          lng: position.lng()
+        };
+        setCoordinates(markerLocation);
+        getAddressFromCoordinates(markerLocation);
+      });
+      
+      const input = document.getElementById('location-search') as HTMLInputElement;
+      if (input) {
+        const searchBox = new window.google.maps.places.SearchBox(input);
+        
+        mapInstanceRef.current.addListener('bounds_changed', () => {
+          searchBox.setBounds(mapInstanceRef.current.getBounds());
+        });
+        
+        searchBox.addListener('places_changed', () => {
+          const places = searchBox.getPlaces();
+          if (places.length === 0) return;
+          
+          const place = places[0];
+          if (!place.geometry || !place.geometry.location) return;
+          
+          mapInstanceRef.current.setCenter(place.geometry.location);
+          mapInstanceRef.current.setZoom(15);
+          
+          const newLocation = {
+            lat: place.geometry.location.lat(),
+            lng: place.geometry.location.lng()
+          };
+          setMarkerPosition(newLocation);
+        });
+      }
+      
+      setMapLoaded(true);
+    }
+  };
+  
+  const setMarkerPosition = (location: {lat: number, lng: number}) => {
+    if (markerRef.current && window.google) {
+      markerRef.current.setPosition(location);
+      setCoordinates(location);
+      getAddressFromCoordinates(location);
+    }
+  };
+  
+  const getAddressFromCoordinates = (location: {lat: number, lng: number}) => {
+    if (geocoderRef.current) {
+      geocoderRef.current.geocode({ location }, (results: any, status: any) => {
+        if (status === 'OK' && results[0]) {
+          setLocationName(results[0].formatted_address);
+          setFormData(prev => ({ ...prev, location: results[0].formatted_address }));
+        } else {
+          const coordStr = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
+          setLocationName(coordStr);
+          setFormData(prev => ({ ...prev, location: coordStr }));
+        }
+      });
+    }
+  };
 
   const { data: event } = useQuery({
     queryKey: ['edit-event', id],
@@ -66,18 +183,27 @@ const EditEvent = () => {
         description: event.description,
         date: event.date,
         time: event.time,
-        location: event.location,
+        location: event.location || '',
         volunteers_needed: event.volunteers_needed,
         requirements: event.requirements || '',
         organization_contact: event.organization_contact,
+        category: event.category || ''
       });
 
       if (event.location_lat && event.location_lng) {
-        setCoordinates({
+        const eventCoords = {
           lat: event.location_lat,
           lng: event.location_lng
-        });
+        };
+        setCoordinates(eventCoords);
+        
+        if (mapInstanceRef.current && markerRef.current) {
+          mapInstanceRef.current.setCenter(eventCoords);
+          setMarkerPosition(eventCoords);
+        }
       }
+      
+      setLocationName(event.location || '');
     }
   }, [event]);
 
@@ -91,11 +217,18 @@ const EditEvent = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setCoordinates({
+          const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setCoordinates(location);
           setUseCurrentLocation(true);
+          
+          if (mapInstanceRef.current && markerRef.current) {
+            mapInstanceRef.current.setCenter(location);
+            setMarkerPosition(location);
+          }
+          
           toast.success("Location obtained successfully!");
         },
         (error) => {
@@ -116,7 +249,6 @@ const EditEvent = () => {
     setDeleteLoading(true);
 
     try {
-      // First check if the event has any registrations
       const { data: registrations, error: regError } = await supabase
         .from('registrations')
         .select('id')
@@ -124,7 +256,6 @@ const EditEvent = () => {
 
       if (regError) throw regError;
 
-      // Delete all registrations first
       if (registrations && registrations.length > 0) {
         const { error: deleteRegError } = await supabase
           .from('registrations')
@@ -134,7 +265,6 @@ const EditEvent = () => {
         if (deleteRegError) throw deleteRegError;
       }
 
-      // Then delete the event
       const { error } = await supabase
         .from('events')
         .delete()
@@ -143,7 +273,6 @@ const EditEvent = () => {
 
       if (error) throw error;
 
-      // Invalidate relevant queries
       await queryClient.invalidateQueries({ queryKey: ['events'] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
 
@@ -194,7 +323,8 @@ const EditEvent = () => {
         volunteers_needed: parseInt(formData.volunteers_needed.toString(), 10),
         requirements: formData.requirements || null,
         image_url: imageUrl,
-        organization_contact: formData.organization_contact
+        organization_contact: formData.organization_contact,
+        category: formData.category
       };
 
       const { error } = await supabase
@@ -205,7 +335,6 @@ const EditEvent = () => {
 
       if (error) throw error;
 
-      // Invalidate relevant queries
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
       await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
@@ -274,24 +403,64 @@ const EditEvent = () => {
             </div>
           </div>
           <div>
+            <Label htmlFor="category">Event Category</Label>
+            <select 
+              id="category" 
+              name="category" 
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+              value={formData.category}
+              onChange={(e) => setFormData({...formData, category: e.target.value})}
+            >
+              <option value="">-- Select Category --</option>
+              <option value="Environment">Environment</option>
+              <option value="Education">Education</option>
+              <option value="Health">Health</option>
+              <option value="Community Service">Community Service</option>
+              <option value="Animal Welfare">Animal Welfare</option>
+              <option value="Homelessness">Homelessness</option>
+              <option value="Elderly Care">Elderly Care</option>
+              <option value="Food Distribution">Food Distribution</option>
+              <option value="Disaster Relief">Disaster Relief</option>
+              <option value="Youth Development">Youth Development</option>
+            </select>
+          </div>
+          <div>
             <Label htmlFor="location">Location</Label>
-            <div className="flex gap-2">
-              <Input 
-                id="location" 
-                name="location" 
-                value={formData.location}
-                onChange={(e) => setFormData({...formData, location: e.target.value})}
-                required 
-              />
+            <div className="flex gap-2 mb-2">
+              <div className="relative flex-grow">
+                <Input 
+                  id="location-search" 
+                  name="location"
+                  placeholder="Search for a location"
+                  required 
+                  value={locationName}
+                  onChange={(e) => {
+                    setLocationName(e.target.value);
+                    setFormData({...formData, location: e.target.value});
+                  }}
+                />
+                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              </div>
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={getCurrentLocation}
               >
                 <MapPin className="w-4 h-4 mr-2" />
-                Use Current
+                Current
               </Button>
             </div>
+            
+            <div 
+              ref={mapRef} 
+              className="w-full h-64 bg-gray-100 rounded-md mb-2 border border-gray-200"
+            ></div>
+            
+            {coordinates && (
+              <p className="text-sm text-gray-500">
+                Selected coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+              </p>
+            )}
           </div>
           <div>
             <Label htmlFor="volunteers">Number of Volunteers Needed</Label>
