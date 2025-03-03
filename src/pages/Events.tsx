@@ -35,7 +35,7 @@ const Events = () => {
     enabled: !!user
   });
 
-  // Updated query to ensure we're fetching the most recent events
+  // Updated query to ensure we're fetching the most recent events and filtering out full events
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
@@ -54,8 +54,14 @@ const Events = () => {
         throw error;
       }
       
+      // Filter out events that are already full (volunteers_needed <= current_volunteers)
+      const availableEvents = data.filter(event => 
+        event.volunteers_needed > event.current_volunteers
+      );
+      
       console.log("Fetched events:", data);
-      return data as Event[];
+      console.log("Available events:", availableEvents);
+      return availableEvents as Event[];
     }
   });
 

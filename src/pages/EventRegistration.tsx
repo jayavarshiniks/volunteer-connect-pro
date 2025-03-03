@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -63,7 +62,6 @@ const EventRegistration = () => {
     enabled: !!user
   });
 
-  // Use useEffect instead of onSuccess callback
   useEffect(() => {
     if (userProfile) {
       setFormData(prev => ({
@@ -82,7 +80,12 @@ const EventRegistration = () => {
     try {
       console.log("Starting registration process...");
       
-      // Update user profile with the new information
+      if (event.current_volunteers >= event.volunteers_needed) {
+        toast.error("Sorry, this event is already full");
+        navigate(`/events/${id}`);
+        return;
+      }
+      
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -94,7 +97,6 @@ const EventRegistration = () => {
       if (profileError) throw profileError;
       console.log("Profile updated successfully");
 
-      // Store the registration details in the registrations table
       const registrationDetails = {
         event_id: id,
         user_id: user.id,
@@ -111,7 +113,6 @@ const EventRegistration = () => {
       if (registrationError) throw registrationError;
       console.log("Registration created successfully");
 
-      // Update volunteer count in the event
       const { error: updateError } = await supabase
         .from('events')
         .update({ 
@@ -122,15 +123,12 @@ const EventRegistration = () => {
       if (updateError) throw updateError;
       console.log("Event volunteer count updated successfully");
 
-      // Notify organizer via email (would need an edge function in production)
       console.log("Would send notification to organizer:", event.organization_contact);
 
-      // Invalidate queries to refresh data
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
       await queryClient.invalidateQueries({ queryKey: ['events'] });
 
-      // Create registration data for success page
       const registrationData = {
         registrationId: `REG-${Date.now()}`,
         eventId: id,
@@ -162,6 +160,13 @@ const EventRegistration = () => {
 
   if (!event) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  }
+
+  const isEventFull = event.current_volunteers >= event.volunteers_needed;
+  if (isEventFull) {
+    toast.error("This event is already full");
+    navigate(`/events/${id}`);
+    return null;
   }
 
   return (

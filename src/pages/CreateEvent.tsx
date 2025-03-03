@@ -6,10 +6,17 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Upload } from "lucide-react";
+import { MapPin, Upload, Search } from "lucide-react";
+
+declare global {
+  interface Window {
+    google: any;
+    initMap: () => void;
+  }
+}
 
 const CreateEvent = () => {
   const navigate = useNavigate();
@@ -18,6 +25,130 @@ const CreateEvent = () => {
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [useCurrentLocation, setUseCurrentLocation] = useState(false);
   const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
+  const [locationName, setLocationName] = useState("");
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+  const mapInstanceRef = useRef<any>(null);
+  const markerRef = useRef<any>(null);
+  const geocoderRef = useRef<any>(null);
+
+  // Load Google Maps API
+  useEffect(() => {
+    if (!window.google) {
+      const googleMapsScript = document.createElement('script');
+      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyD9d0O2Z8YVbVZz_vj2g1qyJNbfyPvMiDU&libraries=places&callback=initMap`;
+      googleMapsScript.async = true;
+      googleMapsScript.defer = true;
+      window.initMap = initializeMap;
+      document.head.appendChild(googleMapsScript);
+      
+      return () => {
+        window.google = undefined;
+        document.head.removeChild(googleMapsScript);
+      };
+    } else if (mapRef.current && !mapInstanceRef.current) {
+      initializeMap();
+    }
+  }, []);
+
+  // Initialize map
+  const initializeMap = () => {
+    if (mapRef.current && window.google) {
+      const defaultLocation = { lat: 37.7749, lng: -122.4194 }; // Default to San Francisco
+      
+      const mapOptions = {
+        zoom: 13,
+        center: defaultLocation,
+        mapTypeControl: false,
+        streetViewControl: false,
+        fullscreenControl: false,
+      };
+      
+      mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions);
+      geocoderRef.current = new window.google.maps.Geocoder();
+      
+      // Add a marker
+      markerRef.current = new window.google.maps.Marker({
+        position: defaultLocation,
+        map: mapInstanceRef.current,
+        draggable: true,
+        animation: window.google.maps.Animation.DROP,
+      });
+      
+      // Add click event to map
+      window.google.maps.event.addListener(mapInstanceRef.current, 'click', (event: any) => {
+        const clickedLocation = {
+          lat: event.latLng.lat(),
+          lng: event.latLng.lng()
+        };
+        setMarkerPosition(clickedLocation);
+      });
+      
+      // Add drag end event to marker
+      window.google.maps.event.addListener(markerRef.current, 'dragend', () => {
+        const position = markerRef.current.getPosition();
+        const markerLocation = {
+          lat: position.lat(),
+          lng: position.lng()
+        };
+        setCoordinates(markerLocation);
+        getAddressFromCoordinates(markerLocation);
+      });
+      
+      // Initialize the search box
+      const input = document.getElementById('location-search') as HTMLInputElement;
+      const searchBox = new window.google.maps.places.SearchBox(input);
+      
+      // Bias the search box results towards the current map viewport
+      mapInstanceRef.current.addListener('bounds_changed', () => {
+        searchBox.setBounds(mapInstanceRef.current.getBounds());
+      });
+      
+      // Listen for the event fired when the user selects a prediction
+      searchBox.addListener('places_changed', () => {
+        const places = searchBox.getPlaces();
+        if (places.length === 0) return;
+        
+        const place = places[0];
+        if (!place.geometry || !place.geometry.location) return;
+        
+        // Center map on the selected place
+        mapInstanceRef.current.setCenter(place.geometry.location);
+        mapInstanceRef.current.setZoom(15);
+        
+        // Update marker position
+        const newLocation = {
+          lat: place.geometry.location.lat(),
+          lng: place.geometry.location.lng()
+        };
+        setMarkerPosition(newLocation);
+      });
+      
+      setMapLoaded(true);
+    }
+  };
+  
+  // Set marker position
+  const setMarkerPosition = (location: {lat: number, lng: number}) => {
+    if (markerRef.current && window.google) {
+      markerRef.current.setPosition(location);
+      setCoordinates(location);
+      getAddressFromCoordinates(location);
+    }
+  };
+  
+  // Get address from coordinates using geocoder
+  const getAddressFromCoordinates = (location: {lat: number, lng: number}) => {
+    if (geocoderRef.current) {
+      geocoderRef.current.geocode({ location }, (results: any, status: any) => {
+        if (status === 'OK' && results[0]) {
+          setLocationName(results[0].formatted_address);
+        } else {
+          setLocationName(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
+        }
+      });
+    }
+  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
@@ -29,11 +160,19 @@ const CreateEvent = () => {
     if ("geolocation" in navigator) {
       navigator.geolocation.getCurrentPosition(
         (position) => {
-          setCoordinates({
+          const location = {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
-          });
+          };
+          setCoordinates(location);
           setUseCurrentLocation(true);
+          
+          // Update map and marker if map is loaded
+          if (mapInstanceRef.current && markerRef.current) {
+            mapInstanceRef.current.setCenter(location);
+            setMarkerPosition(location);
+          }
+          
           toast.success("Location obtained successfully!");
         },
         (error) => {
@@ -74,19 +213,23 @@ const CreateEvent = () => {
         imageUrl = publicUrl;
       }
 
+      // Ensure we have the location name from the map
+      const finalLocation = locationName || (coordinates ? `${coordinates.lat}, ${coordinates.lng}` : String(formData.get('location')));
+
       const eventData = {
         title: String(formData.get('title')),
         description: String(formData.get('description')),
         date: String(formData.get('date')),
         time: String(formData.get('time')),
-        location: String(formData.get('location')),
+        location: finalLocation,
         location_lat: coordinates?.lat || null,
         location_lng: coordinates?.lng || null,
         volunteers_needed: parseInt(String(formData.get('volunteers')), 10),
         requirements: formData.get('requirements') ? String(formData.get('requirements')) : null,
         image_url: imageUrl,
         organization_id: user.id,
-        organization_contact: String(formData.get('contact'))
+        organization_contact: String(formData.get('contact')),
+        category: formData.get('category') ? String(formData.get('category')) : null
       };
 
       const { error } = await supabase
@@ -127,25 +270,65 @@ const CreateEvent = () => {
               <Input type="time" id="time" name="time" required />
             </div>
           </div>
+          
+          <div>
+            <Label htmlFor="category">Event Category</Label>
+            <select 
+              id="category" 
+              name="category" 
+              className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm"
+            >
+              <option value="">-- Select Category --</option>
+              <option value="Environment">Environment</option>
+              <option value="Education">Education</option>
+              <option value="Health">Health</option>
+              <option value="Community Service">Community Service</option>
+              <option value="Animal Welfare">Animal Welfare</option>
+              <option value="Homelessness">Homelessness</option>
+              <option value="Elderly Care">Elderly Care</option>
+              <option value="Food Distribution">Food Distribution</option>
+              <option value="Disaster Relief">Disaster Relief</option>
+              <option value="Youth Development">Youth Development</option>
+            </select>
+          </div>
+          
           <div>
             <Label htmlFor="location">Location</Label>
-            <div className="flex gap-2">
-              <Input 
-                id="location" 
-                name="location" 
-                required 
-                value={useCurrentLocation ? `${coordinates?.lat}, ${coordinates?.lng}` : undefined}
-              />
+            <div className="flex gap-2 mb-2">
+              <div className="relative flex-grow">
+                <Input 
+                  id="location-search" 
+                  name="location"
+                  placeholder="Search for a location"
+                  required 
+                  value={locationName}
+                  onChange={(e) => setLocationName(e.target.value)}
+                />
+                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
+              </div>
               <Button 
                 type="button" 
                 variant="outline" 
                 onClick={getCurrentLocation}
               >
                 <MapPin className="w-4 h-4 mr-2" />
-                Use Current
+                Current
               </Button>
             </div>
+            
+            {/* Map container */}
+            <div 
+              ref={mapRef} 
+              className="w-full h-64 bg-gray-100 rounded-md mb-2 border border-gray-200"
+            ></div>
+            
+            {coordinates && (
+              <p className="text-sm text-gray-500">
+                Selected coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
+              </p>
+            )}
           </div>
+          
           <div>
             <Label htmlFor="volunteers">Number of Volunteers Needed</Label>
             <Input type="number" id="volunteers" name="volunteers" min="1" required />

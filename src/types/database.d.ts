@@ -19,6 +19,9 @@ export interface Registration {
   event_id: string;
   user_id: string;
   registration_time: string;
+  emergency_contact?: string;
+  dietary_restrictions?: string;
+  notes?: string;
 }
 
 export interface Event {
