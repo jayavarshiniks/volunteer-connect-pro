@@ -1,104 +1,68 @@
 
-import { useLocation, Link, useParams, useNavigate } from 'react-router-dom';
+import { useEffect } from "react";
+import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { QRCodeSVG } from 'qrcode.react';
-import { useEffect } from 'react';
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { CheckCircle } from "lucide-react";
+import { format } from "date-fns";
 
 const RegistrationSuccess = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const { id: eventId } = useParams();
   const registrationData = location.state?.registrationData;
 
-  const qrData = location.search ? JSON.parse(decodeURIComponent(location.search.slice(1))) : null;
-  const displayData = registrationData || qrData;
-
-  const { data: event } = useQuery({
-    queryKey: ['event', eventId],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from('events')
-        .select('*')
-        .eq('id', eventId)
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    enabled: !!eventId
-  });
-
+  // If no registration data is available, redirect to events page
   useEffect(() => {
-    if (!displayData) {
-      navigate('/events');
+    if (!registrationData) {
+      navigate("/events");
     }
-  }, [displayData, navigate]);
+  }, [registrationData, navigate]);
 
-  if (!displayData) {
-    return null;
+  if (!registrationData) {
+    return null; // Will be handled by useEffect redirect
   }
 
-  const qrValue = JSON.stringify({
-    registrationId: displayData.registrationId,
-    eventId: displayData.eventId,
-    userId: displayData.userId,
-    name: displayData.name,
-    email: displayData.email,
-    phone: displayData.phone,
-    timestamp: displayData.timestamp
-  });
+  const formattedDate = registrationData.timestamp 
+    ? format(new Date(registrationData.timestamp), 'PPP')
+    : 'N/A';
 
   return (
     <div className="container mx-auto px-4 py-8">
       <Card className="max-w-2xl mx-auto p-8">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-primary mb-4">Registration Successful!</h1>
-          <p className="text-gray-600">Thank you for registering for the event.</p>
+        <div className="text-center mb-6">
+          <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
+          <h1 className="text-3xl font-bold text-green-700">Registration Successful!</h1>
+          <p className="text-gray-600 mt-2">
+            Thank you for volunteering. Your registration has been confirmed.
+          </p>
         </div>
 
-        <div className="space-y-6">
-          <div className="bg-gray-50 p-6 rounded-lg">
-            <h2 className="text-xl font-semibold mb-4">Registration Details</h2>
-            <div className="space-y-3">
-              <p><span className="font-medium">Registration ID:</span> {displayData.registrationId}</p>
-              <p><span className="font-medium">Name:</span> {displayData.name}</p>
-              <p><span className="font-medium">Email:</span> {displayData.email}</p>
-              <p><span className="font-medium">Phone:</span> {displayData.phone}</p>
-              {displayData.emergency_contact && (
-                <p><span className="font-medium">Emergency Contact:</span> {displayData.emergency_contact}</p>
-              )}
-              {displayData.dietary_restrictions && (
-                <p><span className="font-medium">Dietary Restrictions:</span> {displayData.dietary_restrictions}</p>
-              )}
-              <p><span className="font-medium">Event:</span> {event?.title}</p>
-              <p><span className="font-medium">Registration Time:</span> {new Date(displayData.timestamp).toLocaleString()}</p>
-            </div>
+        <div className="bg-gray-50 p-6 rounded-lg mb-6">
+          <h2 className="text-xl font-semibold mb-4">Registration Details</h2>
+          <div className="space-y-2">
+            <p><span className="font-medium">Registration ID:</span> {registrationData.registrationId}</p>
+            <p><span className="font-medium">Name:</span> {registrationData.name}</p>
+            <p><span className="font-medium">Email:</span> {registrationData.email}</p>
+            <p><span className="font-medium">Phone:</span> {registrationData.phone || 'Not provided'}</p>
+            <p><span className="font-medium">Registered on:</span> {formattedDate}</p>
+            
+            {registrationData.emergency_contact && (
+              <p><span className="font-medium">Emergency Contact:</span> {registrationData.emergency_contact}</p>
+            )}
+            
+            {registrationData.dietary_restrictions && (
+              <p><span className="font-medium">Dietary Restrictions:</span> {registrationData.dietary_restrictions}</p>
+            )}
           </div>
+        </div>
 
-          <div className="flex flex-col items-center space-y-4">
-            <h2 className="text-xl font-semibold">Your Registration QR Code</h2>
-            <div className="bg-white p-4 rounded-lg shadow-sm">
-              <QRCodeSVG 
-                value={qrValue} 
-                size={200} 
-                level="H"
-                includeMargin={true}
-              />
-            </div>
-            <p className="text-sm text-gray-600">
-              Please present this QR code when you arrive at the event.
-            </p>
-          </div>
-
-          <div className="flex justify-center space-x-4 mt-8">
-            <Link to="/events">
-              <Button variant="outline">Back to Events</Button>
-            </Link>
-            <Button onClick={() => window.print()}>Print Details</Button>
-          </div>
+        <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
+          <Link to={`/events/${registrationData.eventId}`}>
+            <Button variant="outline">Back to Event</Button>
+          </Link>
+          <Link to="/events">
+            <Button>Browse More Events</Button>
+          </Link>
         </div>
       </Card>
     </div>

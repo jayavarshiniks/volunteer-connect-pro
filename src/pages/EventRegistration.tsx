@@ -41,11 +41,13 @@ const EventRegistration = () => {
         .from('events')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Event not found");
       return data;
-    }
+    },
+    retry: 1
   });
 
   const { data: userProfile } = useQuery({
@@ -75,13 +77,19 @@ const EventRegistration = () => {
 
   // Check if event is full before rendering
   useEffect(() => {
+    if (!user) {
+      toast.error("Please login to register for events");
+      navigate("/login");
+      return;
+    }
+
     if (event && !eventLoading) {
       if (event.current_volunteers >= event.volunteers_needed) {
         toast.error("This event is already full");
         navigate(`/events/${id}`);
       }
     }
-  }, [event, eventLoading, id, navigate]);
+  }, [event, eventLoading, id, navigate, user]);
 
   const handleConfirmRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -171,7 +179,7 @@ const EventRegistration = () => {
       });
     } catch (error: any) {
       console.error("Registration error:", error);
-      toast.error(error.message);
+      toast.error(error.message || "Failed to register for this event");
     } finally {
       setLoading(false);
     }
