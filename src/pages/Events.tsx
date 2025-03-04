@@ -42,7 +42,7 @@ const Events = () => {
       console.log("Fetching events...");
       const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
       
-      // Updated query to ensure we get ALL events including those without categories
+      // Get all events that haven't happened yet
       const { data, error } = await supabase
         .from('events')
         .select('*')

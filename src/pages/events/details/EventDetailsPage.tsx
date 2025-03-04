@@ -1,12 +1,23 @@
 
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { isPast } from "date-fns";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import EventHeader from "./components/EventHeader";
 import EventDetails from "./components/EventDetails";
 import OrganizationContact from "./components/OrganizationContact";
@@ -17,6 +28,7 @@ const EventDetailsPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   const { data: event, isLoading } = useQuery({
     queryKey: ['event', id],
@@ -109,6 +121,37 @@ const EventDetailsPage = () => {
     }
   };
 
+  const handleDeleteEvent = async () => {
+    if (!user || !id) return;
+
+    try {
+      // First, delete all registrations for this event
+      const { error: registrationsError } = await supabase
+        .from('registrations')
+        .delete()
+        .eq('event_id', id);
+
+      if (registrationsError) throw registrationsError;
+
+      // Then delete the event itself
+      const { error: eventError } = await supabase
+        .from('events')
+        .delete()
+        .eq('id', id);
+
+      if (eventError) throw eventError;
+
+      // Invalidate all relevant queries
+      queryClient.invalidateQueries({ queryKey: ['events'] });
+      queryClient.invalidateQueries({ queryKey: ['organization-events', user.id] });
+      
+      toast.success("Event deleted successfully");
+      navigate('/organization-dashboard');
+    } catch (error: any) {
+      toast.error(`Failed to delete event: ${error.message}`);
+    }
+  };
+
   const handleBackToEvents = () => {
     navigate('/events');
   };
@@ -189,6 +232,29 @@ const EventDetailsPage = () => {
               >
                 Edit Event
               </Button>
+              
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="destructive" className="flex-1">
+                    Delete Event
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This action cannot be undone. This will permanently delete this event
+                      and all associated volunteer registrations.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction onClick={handleDeleteEvent}>
+                      Delete
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
             </div>
           )}
         </div>

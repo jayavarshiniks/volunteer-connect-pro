@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -33,7 +34,7 @@ const EventRegistration = () => {
     notes: ""
   });
 
-  const { data: event } = useQuery({
+  const { data: event, isLoading: eventLoading } = useQuery({
     queryKey: ['event', id],
     queryFn: async () => {
       const { data, error } = await supabase
@@ -72,6 +73,16 @@ const EventRegistration = () => {
     }
   }, [userProfile]);
 
+  // Check if event is full before rendering
+  useEffect(() => {
+    if (event && !eventLoading) {
+      if (event.current_volunteers >= event.volunteers_needed) {
+        toast.error("This event is already full");
+        navigate(`/events/${id}`);
+      }
+    }
+  }, [event, eventLoading, id, navigate]);
+
   const handleConfirmRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !event) return;
@@ -80,12 +91,22 @@ const EventRegistration = () => {
     try {
       console.log("Starting registration process...");
       
-      if (event.current_volunteers >= event.volunteers_needed) {
+      // Check again if the event is full (in case it filled up while user was filling the form)
+      const { data: freshEvent, error: freshEventError } = await supabase
+        .from('events')
+        .select('current_volunteers, volunteers_needed')
+        .eq('id', id)
+        .single();
+        
+      if (freshEventError) throw freshEventError;
+      
+      if (freshEvent.current_volunteers >= freshEvent.volunteers_needed) {
         toast.error("Sorry, this event is already full");
         navigate(`/events/${id}`);
         return;
       }
       
+      // Update profile information
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -97,6 +118,7 @@ const EventRegistration = () => {
       if (profileError) throw profileError;
       console.log("Profile updated successfully");
 
+      // Create registration
       const registrationDetails = {
         event_id: id,
         user_id: user.id,
@@ -113,21 +135,22 @@ const EventRegistration = () => {
       if (registrationError) throw registrationError;
       console.log("Registration created successfully");
 
+      // Update event volunteer count
       const { error: updateError } = await supabase
         .from('events')
         .update({ 
-          current_volunteers: (event.current_volunteers || 0) + 1 
+          current_volunteers: (freshEvent.current_volunteers || 0) + 1 
         })
         .eq('id', id);
 
       if (updateError) throw updateError;
       console.log("Event volunteer count updated successfully");
 
-      console.log("Would send notification to organizer:", event.organization_contact);
-
+      // Invalidate all relevant queries to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
       await queryClient.invalidateQueries({ queryKey: ['events'] });
+      await queryClient.invalidateQueries({ queryKey: ['event-volunteers', id] });
 
       const registrationData = {
         registrationId: `REG-${Date.now()}`,
@@ -158,10 +181,11 @@ const EventRegistration = () => {
     navigate(`/events/${id}`);
   };
 
-  if (!event) {
+  if (eventLoading || !event) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
   }
 
+  // Check if event is full
   const isEventFull = event.current_volunteers >= event.volunteers_needed;
   if (isEventFull) {
     toast.error("This event is already full");
@@ -189,6 +213,7 @@ const EventRegistration = () => {
               <p><span className="font-medium">Date:</span> {format(new Date(event.date), 'PPP')}</p>
               <p><span className="font-medium">Time:</span> {event.time}</p>
               <p><span className="font-medium">Location:</span> {event.location}</p>
+              <p><span className="font-medium">Spots Remaining:</span> {event.volunteers_needed - event.current_volunteers} of {event.volunteers_needed}</p>
             </div>
           </div>
 
