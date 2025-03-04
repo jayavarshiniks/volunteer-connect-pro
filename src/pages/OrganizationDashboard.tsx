@@ -14,6 +14,7 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import VolunteerAnalytics from "./organization/components/VolunteerAnalytics";
 
 const OrganizationDashboard = () => {
   const { user } = useAuth();
@@ -46,6 +47,9 @@ const OrganizationDashboard = () => {
           event_id,
           user_id,
           registration_time,
+          emergency_contact,
+          dietary_restrictions,
+          notes,
           profiles:user_id (
             full_name,
             phone,
@@ -88,7 +92,7 @@ const OrganizationDashboard = () => {
 
   // Also listen for registration changes
   useEffect(() => {
-    if (!user) return;
+    if (!user || !events || events.length === 0) return;
 
     const channel = supabase
       .channel('registrations-changes')
@@ -97,7 +101,8 @@ const OrganizationDashboard = () => {
         {
           event: '*',
           schema: 'public',
-          table: 'registrations'
+          table: 'registrations',
+          filter: `event_id=in.(${events.map(e => e.id).join(',')})`
         },
         () => {
           queryClient.invalidateQueries({ queryKey: ['organization-registrations', user?.id] });
@@ -109,7 +114,7 @@ const OrganizationDashboard = () => {
     return () => {
       supabase.removeChannel(channel);
     };
-  }, [user, queryClient]);
+  }, [user, events, queryClient]);
 
   const getEventRegistrations = (eventId: string) => {
     return registrations?.filter(reg => reg.event_id === eventId) || [];
@@ -165,6 +170,16 @@ const OrganizationDashboard = () => {
           <p className="text-3xl font-bold">{stats.completedEvents}</p>
         </Card>
       </div>
+
+      {/* Add the volunteer analytics component */}
+      {registrations && registrations.length > 0 && events && (
+        <div className="mb-8">
+          <VolunteerAnalytics 
+            registrations={registrations} 
+            events={events} 
+          />
+        </div>
+      )}
 
       <h2 className="text-2xl font-bold mb-4">Your Events</h2>
       <div className="grid gap-4">
