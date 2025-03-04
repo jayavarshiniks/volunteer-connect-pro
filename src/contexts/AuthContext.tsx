@@ -25,16 +25,32 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Initial session check
     const initializeAuth = async () => {
       try {
+        // Set loading state while we initialize
+        setLoading(true);
+        
         // Get the initial session
-        const { data: { session } } = await supabase.auth.getSession();
+        const { data: sessionData, error: sessionError } = await supabase.auth.getSession();
+        
+        if (sessionError) {
+          console.error("Error getting session:", sessionError);
+          setLoading(false);
+          return;
+        }
+        
+        const session = sessionData?.session;
+        console.log("Initial session check:", session ? "Session found" : "No session");
+        
+        // Set the user from the session
         setUser(session?.user ?? null);
 
         // Set up the auth state listener
         const {
           data: { subscription },
-        } = supabase.auth.onAuthStateChange(async (event, session) => {
+        } = supabase.auth.onAuthStateChange(async (event, newSession) => {
           console.log("Auth state changed:", event);
-          setUser(session?.user ?? null);
+          
+          const newUser = newSession?.user ?? null;
+          setUser(newUser);
 
           // Handle session refresh
           if (event === 'TOKEN_REFRESHED') {
@@ -42,12 +58,14 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
           }
 
           // Handle sign in
-          if (event === 'SIGNED_IN' && session?.user) {
-            await handleAuthNavigation(session.user.id, navigate);
+          if (event === 'SIGNED_IN' && newUser) {
+            console.log("User signed in:", newUser.id);
+            await handleAuthNavigation(newUser.id, navigate);
           }
 
           // Handle sign out
           if (event === 'SIGNED_OUT') {
+            console.log("User signed out");
             setUser(null);
             navigate('/login');
           }
@@ -114,6 +132,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
       if (signInError) throw signInError;
       if (!signInData.user) throw new Error("No user data returned");
 
+      console.log("Sign in successful for user:", signInData.user.id);
+
       // Fetch the user's role from the profiles table
       const { data: profileData, error: profileError } = await supabase
         .from('profiles')
@@ -149,8 +169,12 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       setLoading(true);
+      console.log("Signing out user...");
       const { error } = await supabase.auth.signOut();
-      if (error) throw error;
+      if (error) {
+        console.error("Error signing out:", error);
+        throw error;
+      }
       
       // Clear the user state
       setUser(null);
