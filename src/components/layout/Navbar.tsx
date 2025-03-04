@@ -11,6 +11,7 @@ import {
 import { UserRound, LogOut } from "lucide-react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 export const Navbar = () => {
   const { user, signOut } = useAuth();
@@ -33,8 +34,14 @@ export const Navbar = () => {
   });
 
   const handleSignOut = async () => {
-    await signOut();
-    navigate("/");
+    try {
+      await signOut();
+    } catch (error) {
+      console.error("Error in handleSignOut:", error);
+      // Even if there's an error, we'll still try to redirect
+      navigate("/login");
+      toast.error("There was a problem signing out. Please try again.");
+    }
   };
 
   const scrollToSection = (id: string) => {

@@ -31,18 +31,21 @@ const EventDetailsPage = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
 
-  const { data: event, isLoading } = useQuery({
+  const { data: event, isLoading, isError, error } = useQuery({
     queryKey: ['event', id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from('events')
         .select('*')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (error) throw error;
+      if (!data) throw new Error("Event not found");
       return data;
-    }
+    },
+    retry: 1,
+    staleTime: 60000
   });
 
   const { data: userProfile } = useQuery({
@@ -87,6 +90,14 @@ const EventDetailsPage = () => {
     },
     enabled: !!id && userProfile?.role === 'organization'
   });
+
+  // Check for 404 error or deleted event
+  useEffect(() => {
+    if (isError) {
+      toast.error("Event not found or has been deleted");
+      navigate('/events');
+    }
+  }, [isError, navigate]);
 
   const handleRegister = async () => {
     if (!user) {
@@ -142,12 +153,15 @@ const EventDetailsPage = () => {
 
       if (eventError) throw eventError;
 
-      // Invalidate all relevant queries
+      // Invalidate all relevant queries to update UI across the app
       queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['organization-events', user.id] });
+      queryClient.invalidateQueries({ queryKey: ['event', id] });
+      queryClient.invalidateQueries({ queryKey: ['organization-events'] });
       
       toast.success("Event deleted successfully");
-      navigate('/organization-dashboard');
+      
+      // Navigate back to the events page
+      navigate('/events');
     } catch (error: any) {
       toast.error(`Failed to delete event: ${error.message}`);
     }
@@ -157,8 +171,12 @@ const EventDetailsPage = () => {
     navigate('/events');
   };
 
-  if (isLoading || !event) {
+  if (isLoading) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
+  }
+  
+  if (!event) {
+    return null; // Will be handled by the useEffect above
   }
 
   // Check if event is in the past

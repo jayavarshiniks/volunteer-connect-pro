@@ -170,20 +170,27 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     try {
       setLoading(true);
       console.log("Signing out user...");
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error("Error signing out:", error);
-        throw error;
-      }
       
-      // Clear the user state
+      // First clear the user state locally to ensure UI updates immediately
       setUser(null);
       
-      // Navigate to login
+      // Then try to sign out from Supabase
+      const { error } = await supabase.auth.signOut();
+      
+      if (error) {
+        console.error("Error signing out from Supabase:", error);
+        // Even if there's an error with Supabase, we'll still redirect the user
+        // since we've already cleared the local user state
+      }
+      
+      // Always navigate to login page regardless of errors
       navigate("/login");
       toast.success("Logged out successfully!");
+      
     } catch (error: any) {
-      handleAuthError(error);
+      console.error("Exception in signOut:", error);
+      // Even if there's an exception, we'll still redirect the user
+      navigate("/login");
     } finally {
       setLoading(false);
     }
