@@ -37,76 +37,34 @@ const RegistrationSuccess = () => {
     }
   }, [registrationData, navigate]);
 
-  const handleDownloadQR = () => {
-    const canvas = document.getElementById('registration-qr');
-    if (!canvas) return;
-    
-    const svg = canvas.querySelector('svg');
-    if (!svg) return;
-    
-    // Create a canvas element to convert SVG to PNG
-    const canvasElement = document.createElement('canvas');
-    canvasElement.width = 256;
-    canvasElement.height = 256;
-    
-    // Get the SVG data
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    
-    // Use URL constructor instead of createObjectURL
-    const url = URL.createObjectURL(svgBlob);
-    
-    // Create an image to draw on canvas
-    const img = new Image();
-    img.onload = () => {
-      const ctx = canvasElement.getContext('2d');
-      if (ctx) {
-        ctx.drawImage(img, 0, 0);
-        
-        // Revoke the URL to avoid memory leaks
-        URL.revokeObjectURL(url);
-        
-        // Convert canvas to PNG
-        const pngUrl = canvasElement.toDataURL('image/png');
-        
-        // Create download link
-        const downloadLink = document.createElement('a');
-        const eventName = registrationData.eventTitle || 'Event';
-        const fileName = `registration-${eventName}-${registrationData.registrationId}.png`;
-        
-        downloadLink.href = pngUrl;
-        downloadLink.download = fileName;
-        document.body.appendChild(downloadLink);
-        downloadLink.click();
-        document.body.removeChild(downloadLink);
-      }
-    };
-    img.src = url;
-  };
-
   // Function to download the entire page as PDF
   const handleDownloadPage = async () => {
     if (!pageRef.current) return;
     
     try {
-      const canvas = await html2canvas(pageRef.current, {
-        scale: 2, // Higher quality
-        logging: false,
-        useCORS: true
-      });
-      
-      const imgData = canvas.toDataURL('image/png');
-      const pdf = new jsPDF({
-        orientation: 'portrait',
-        unit: 'px',
-        format: [canvas.width, canvas.height]
-      });
-      
-      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-      
-      const eventName = registrationData.eventTitle || 'Event';
-      const fileName = `registration-${eventName}-${registrationData.registrationId}.pdf`;
-      pdf.save(fileName);
+      // Use a slight delay to ensure QR code is fully rendered
+      setTimeout(async () => {
+        const canvas = await html2canvas(pageRef.current, {
+          scale: 2, // Higher quality
+          logging: false,
+          useCORS: true,
+          allowTaint: true,
+          imageTimeout: 2000 // Longer timeout to ensure QR code renders
+        });
+        
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({
+          orientation: 'portrait',
+          unit: 'px',
+          format: [canvas.width, canvas.height]
+        });
+        
+        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+        
+        const eventName = registrationData.eventTitle || 'Event';
+        const fileName = `registration-${eventName}-${registrationData.registrationId}.pdf`;
+        pdf.save(fileName);
+      }, 300); // Small delay to ensure rendering
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
@@ -165,21 +123,8 @@ const RegistrationSuccess = () => {
               size={200}
               level="H"
               includeMargin={true}
-              imageSettings={{
-                src: "",
-                excavate: true,
-                width: 40,
-                height: 40,
-              }}
             />
           </div>
-          <Button 
-            onClick={handleDownloadQR}
-            className="mt-4"
-            variant="outline"
-          >
-            <Download className="mr-2 h-4 w-4" /> Download QR Code
-          </Button>
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
