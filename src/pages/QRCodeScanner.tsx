@@ -1,6 +1,5 @@
-
 import { useState, useEffect } from "react";
-import { QrScanner } from "@yudiel/react-qr-scanner";
+import { Scanner } from "@yudiel/react-qr-scanner";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { AlertCircle, CheckCircle, UserCheck } from "lucide-react";
@@ -125,7 +124,7 @@ const QRCodeScanner = () => {
             </div>
             
             <div className="bg-gray-50 p-4 rounded-lg overflow-hidden">
-              <QrScanner
+              <Scanner
                 onDecode={handleScan}
                 onError={(error) => {
                   console.error(error);
