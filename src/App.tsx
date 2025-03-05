@@ -1,7 +1,8 @@
+
 import { Routes, Route } from "react-router-dom";
 import Landing from "@/pages/Landing";
 import Events from "@/pages/Events";
-import EventDetails from "@/pages/EventDetails";
+import EventDetails from "@/pages/events/details/EventDetailsPage";
 import EventRegistration from "@/pages/EventRegistration";
 import EditEvent from "@/pages/EditEvent";
 import CreateEvent from "@/pages/CreateEvent";

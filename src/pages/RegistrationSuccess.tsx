@@ -3,7 +3,7 @@ import { useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, Download, QrCode } from "lucide-react";
+import { CheckCircle, Download, Calendar } from "lucide-react";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
 
@@ -118,8 +118,10 @@ const RegistrationSuccess = () => {
             <QRCodeSVG
               value={qrCodeData}
               size={200}
-              level="H" // High error correction capability
+              level="H"
               includeMargin={true}
+              bgColor={"#ffffff"}
+              fgColor={"#000000"}
             />
           </div>
           <p className="text-sm text-gray-500 text-center mt-4">
@@ -129,7 +131,10 @@ const RegistrationSuccess = () => {
 
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
           <Link to={`/events/${registrationData.eventId}`}>
-            <Button variant="outline">Back to Event</Button>
+            <Button variant="outline">
+              <Calendar className="w-4 h-4 mr-2" />
+              Back to Event
+            </Button>
           </Link>
           <Link to="/events">
             <Button>Browse More Events</Button>
