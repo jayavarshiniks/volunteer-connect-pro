@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { Users, Phone, AlertCircle, UtensilsCrossed, MessageSquare } from 'lucide-react';
+import { Users, Phone, AlertCircle, UtensilsCrossed } from 'lucide-react';
 
 interface Volunteer {
   id: string;
@@ -77,11 +77,8 @@ const RegisteredVolunteers: React.FC<RegisteredVolunteersProps> = ({ volunteers 
                   )}
                   
                   {registration.notes && (
-                    <div className="flex items-start gap-2">
-                      <MessageSquare size={14} className="text-green-500 mt-1 flex-shrink-0" />
-                      <div>
-                        <span className="font-medium">Notes:</span> {registration.notes}
-                      </div>
+                    <div className="mt-1">
+                      <span className="font-medium">Notes:</span> {registration.notes}
                     </div>
                   )}
                 </div>

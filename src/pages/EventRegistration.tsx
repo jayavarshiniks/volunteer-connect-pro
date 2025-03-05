@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -74,6 +75,7 @@ const EventRegistration = () => {
     }
   }, [userProfile]);
 
+  // Check if event is full before rendering
   useEffect(() => {
     if (!user) {
       toast.error("Please login to register for events");
@@ -97,6 +99,7 @@ const EventRegistration = () => {
     try {
       console.log("Starting registration process...");
       
+      // Check again if the event is full (in case it filled up while user was filling the form)
       const { data: freshEvent, error: freshEventError } = await supabase
         .from('events')
         .select('current_volunteers, volunteers_needed')
@@ -111,6 +114,7 @@ const EventRegistration = () => {
         return;
       }
       
+      // Update profile information
       const { error: profileError } = await supabase
         .from('profiles')
         .update({
@@ -122,6 +126,7 @@ const EventRegistration = () => {
       if (profileError) throw profileError;
       console.log("Profile updated successfully");
 
+      // Create registration
       const registrationDetails = {
         event_id: id,
         user_id: user.id,
@@ -138,6 +143,7 @@ const EventRegistration = () => {
       if (registrationError) throw registrationError;
       console.log("Registration created successfully");
 
+      // Update event volunteer count
       const { error: updateError } = await supabase
         .from('events')
         .update({ 
@@ -148,6 +154,7 @@ const EventRegistration = () => {
       if (updateError) throw updateError;
       console.log("Event volunteer count updated successfully");
 
+      // Invalidate all relevant queries to refresh the UI
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
       await queryClient.invalidateQueries({ queryKey: ['events'] });
@@ -163,12 +170,11 @@ const EventRegistration = () => {
         emergency_contact: formData.emergency_contact,
         dietary_restrictions: formData.dietary_restrictions,
         notes: formData.notes,
-        timestamp: new Date().toISOString(),
-        eventTitle: event.title
+        timestamp: new Date().toISOString()
       };
 
       toast.success("Successfully registered for the event!");
-      navigate(`/registration-success`, { 
+      navigate(`/events/${id}/registration-success`, { 
         state: { registrationData } 
       });
     } catch (error: any) {
@@ -187,6 +193,7 @@ const EventRegistration = () => {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
   }
 
+  // Check if event is full
   const isEventFull = event.current_volunteers >= event.volunteers_needed;
   if (isEventFull) {
     toast.error("This event is already full");
