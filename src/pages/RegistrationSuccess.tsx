@@ -3,8 +3,9 @@ import { useEffect } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle } from "lucide-react";
+import { CheckCircle, Download, QrCode } from "lucide-react";
 import { format } from "date-fns";
+import { QRCodeSVG } from "qrcode.react";
 
 const RegistrationSuccess = () => {
   const location = useLocation();
@@ -25,6 +26,54 @@ const RegistrationSuccess = () => {
   const formattedDate = registrationData.timestamp 
     ? format(new Date(registrationData.timestamp), 'PPP')
     : 'N/A';
+
+  // QR code data - create a JSON string with essential verification data
+  const qrCodeData = JSON.stringify({
+    registrationId: registrationData.registrationId,
+    eventId: registrationData.eventId,
+    userId: registrationData.userId,
+    name: registrationData.name,
+    timestamp: registrationData.timestamp
+  });
+
+  // Function to print QR code
+  const handlePrintQRCode = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Event Registration QR Code</title>
+          <style>
+            body { font-family: Arial, sans-serif; text-align: center; padding: 20px; }
+            .container { max-width: 500px; margin: 0 auto; }
+            h1 { color: #333; font-size: 24px; margin-bottom: 10px; }
+            p { color: #666; margin-bottom: 5px; }
+            .qr-container { margin: 30px 0; }
+          </style>
+        </head>
+        <body>
+          <div class="container">
+            <h1>Event Registration: ${registrationData.name}</h1>
+            <p>Event: ${registrationData.eventTitle || 'Event'}</p>
+            <p>Registration ID: ${registrationData.registrationId}</p>
+            <p>Registered on: ${formattedDate}</p>
+            <div class="qr-container" id="qrcode"></div>
+            <p>Please bring this QR code to the event for verification.</p>
+          </div>
+          <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.1/build/qrcode.min.js"></script>
+          <script>
+            QRCode.toCanvas(document.getElementById('qrcode'), '${qrCodeData.replace(/'/g, "\\'")}', function (error) {
+              if (error) console.error(error);
+            });
+            setTimeout(() => { window.print(); }, 500);
+          </script>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -54,6 +103,28 @@ const RegistrationSuccess = () => {
               <p><span className="font-medium">Dietary Restrictions:</span> {registrationData.dietary_restrictions}</p>
             )}
           </div>
+        </div>
+
+        {/* QR Code Section */}
+        <div className="bg-gray-50 p-6 rounded-lg mb-6">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-semibold">Event QR Code</h2>
+            <Button variant="outline" size="sm" onClick={handlePrintQRCode}>
+              <Download className="w-4 h-4 mr-2" />
+              Print QR Code
+            </Button>
+          </div>
+          <div className="flex justify-center p-4 bg-white rounded-md">
+            <QRCodeSVG
+              value={qrCodeData}
+              size={200}
+              level="H" // High error correction capability
+              includeMargin={true}
+            />
+          </div>
+          <p className="text-sm text-gray-500 text-center mt-4">
+            Please present this QR code when you arrive at the event for verification.
+          </p>
         </div>
 
         <div className="flex flex-col gap-4 sm:flex-row sm:justify-between">
