@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Scanner } from "@yudiel/react-qr-scanner";
 import { Card } from "@/components/ui/card";
@@ -125,10 +126,10 @@ const QRCodeScanner = () => {
             
             <div className="bg-gray-50 p-4 rounded-lg overflow-hidden">
               <Scanner
-                onDecode={handleScan}
+                onResult={(result) => handleScan(result?.getText() || "")}
                 onError={(error) => {
                   console.error(error);
-                  toast.error("Scanner error: " + error.message);
+                  toast.error("Scanner error: " + (error instanceof Error ? error.message : "Unknown error"));
                 }}
                 containerStyle={{ width: '100%', height: '350px' }}
               />
