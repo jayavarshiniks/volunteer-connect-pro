@@ -1,17 +1,20 @@
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { CheckCircle, Download } from "lucide-react";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const RegistrationSuccess = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const registrationData = location.state?.registrationData;
   const [qrValue, setQrValue] = useState("");
+  const pageRef = useRef<HTMLDivElement>(null);
 
   // If no registration data is available, redirect to events page
   useEffect(() => {
@@ -46,11 +49,12 @@ const RegistrationSuccess = () => {
     canvasElement.width = 256;
     canvasElement.height = 256;
     
-    // Get the SVG data URL
+    // Get the SVG data
     const svgData = new XMLSerializer().serializeToString(svg);
     const svgBlob = new Blob([svgData], { type: 'image/svg+xml;charset=utf-8' });
-    const DOMURL = window.URL || window.webkitURL || window;
-    const svgUrl = DOMURL.createObjectURL(svgBlob);
+    
+    // Use URL constructor instead of createObjectURL
+    const url = URL.createObjectURL(svgBlob);
     
     // Create an image to draw on canvas
     const img = new Image();
@@ -58,7 +62,9 @@ const RegistrationSuccess = () => {
       const ctx = canvasElement.getContext('2d');
       if (ctx) {
         ctx.drawImage(img, 0, 0);
-        DOMURL.revokeObjectURL(svgUrl);
+        
+        // Revoke the URL to avoid memory leaks
+        URL.revokeObjectURL(url);
         
         // Convert canvas to PNG
         const pngUrl = canvasElement.toDataURL('image/png');
@@ -75,7 +81,35 @@ const RegistrationSuccess = () => {
         document.body.removeChild(downloadLink);
       }
     };
-    img.src = svgUrl;
+    img.src = url;
+  };
+
+  // Function to download the entire page as PDF
+  const handleDownloadPage = async () => {
+    if (!pageRef.current) return;
+    
+    try {
+      const canvas = await html2canvas(pageRef.current, {
+        scale: 2, // Higher quality
+        logging: false,
+        useCORS: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF({
+        orientation: 'portrait',
+        unit: 'px',
+        format: [canvas.width, canvas.height]
+      });
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+      
+      const eventName = registrationData.eventTitle || 'Event';
+      const fileName = `registration-${eventName}-${registrationData.registrationId}.pdf`;
+      pdf.save(fileName);
+    } catch (error) {
+      console.error('Error generating PDF:', error);
+    }
   };
 
   if (!registrationData) {
@@ -88,7 +122,7 @@ const RegistrationSuccess = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-2xl mx-auto p-8">
+      <Card className="max-w-2xl mx-auto p-8" ref={pageRef}>
         <div className="text-center mb-6">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-green-700">Registration Successful!</h1>
@@ -152,9 +186,9 @@ const RegistrationSuccess = () => {
           <Link to={`/events/${registrationData.eventId}`}>
             <Button variant="outline">Back to Event</Button>
           </Link>
-          <Link to="/events">
-            <Button>Browse More Events</Button>
-          </Link>
+          <Button onClick={handleDownloadPage}>
+            <Download className="mr-2 h-4 w-4" /> Download Registration Page
+          </Button>
         </div>
       </Card>
     </div>
