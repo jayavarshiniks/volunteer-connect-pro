@@ -80,6 +80,7 @@ const OrganizationDashboard = () => {
         },
         () => {
           // Refresh events data when changes occur
+          console.log("Events changed, refreshing data");
           queryClient.invalidateQueries({ queryKey: ['organization-events', user?.id] });
         }
       )
@@ -105,6 +106,7 @@ const OrganizationDashboard = () => {
           filter: `event_id=in.(${events.map(e => e.id).join(',')})`
         },
         () => {
+          console.log("Registration changes detected, refreshing data");
           queryClient.invalidateQueries({ queryKey: ['organization-registrations', user?.id] });
           queryClient.invalidateQueries({ queryKey: ['organization-events', user?.id] });
         }

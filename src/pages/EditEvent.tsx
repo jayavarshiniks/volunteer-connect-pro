@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -5,11 +6,11 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { MapPin, Upload, Trash2, AlertTriangle, Search } from "lucide-react";
+import { Upload, Trash2 } from "lucide-react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,14 +31,6 @@ const EditEvent = () => {
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
-  const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
-  const [locationName, setLocationName] = useState("");
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const geocoderRef = useRef<any>(null);
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -49,117 +42,6 @@ const EditEvent = () => {
     organization_contact: '',
     category: ''
   });
-
-  useEffect(() => {
-    if (!window.google) {
-      const googleMapsScript = document.createElement('script');
-      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AlzaSyOdOhoFdBnw3QOgUXp4qjRPT0tG1htpb-g&libraries=places&callback=initMap`;
-      googleMapsScript.async = true;
-      googleMapsScript.defer = true;
-      window.initMap = initializeMap;
-      document.head.appendChild(googleMapsScript);
-      
-      return () => {
-        window.google = undefined;
-        document.head.removeChild(googleMapsScript);
-      };
-    } else if (mapRef.current && !mapInstanceRef.current) {
-      initializeMap();
-    }
-  }, []);
-  
-  const initializeMap = () => {
-    if (mapRef.current && window.google) {
-      const initialLocation = coordinates || { lat: 37.7749, lng: -122.4194 };
-      
-      const mapOptions = {
-        zoom: 13,
-        center: initialLocation,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-      };
-      
-      mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions);
-      geocoderRef.current = new window.google.maps.Geocoder();
-      
-      markerRef.current = new window.google.maps.Marker({
-        position: initialLocation,
-        map: mapInstanceRef.current,
-        draggable: true,
-        animation: window.google.maps.Animation.DROP,
-      });
-      
-      window.google.maps.event.addListener(mapInstanceRef.current, 'click', (event: any) => {
-        const clickedLocation = {
-          lat: event.latLng.lat(),
-          lng: event.latLng.lng()
-        };
-        setMarkerPosition(clickedLocation);
-      });
-      
-      window.google.maps.event.addListener(markerRef.current, 'dragend', () => {
-        const position = markerRef.current.getPosition();
-        const markerLocation = {
-          lat: position.lat(),
-          lng: position.lng()
-        };
-        setCoordinates(markerLocation);
-        getAddressFromCoordinates(markerLocation);
-      });
-      
-      const input = document.getElementById('location-search') as HTMLInputElement;
-      if (input) {
-        const searchBox = new window.google.maps.places.SearchBox(input);
-        
-        mapInstanceRef.current.addListener('bounds_changed', () => {
-          searchBox.setBounds(mapInstanceRef.current.getBounds());
-        });
-        
-        searchBox.addListener('places_changed', () => {
-          const places = searchBox.getPlaces();
-          if (places.length === 0) return;
-          
-          const place = places[0];
-          if (!place.geometry || !place.geometry.location) return;
-          
-          mapInstanceRef.current.setCenter(place.geometry.location);
-          mapInstanceRef.current.setZoom(15);
-          
-          const newLocation = {
-            lat: place.geometry.location.lat(),
-            lng: place.geometry.location.lng()
-          };
-          setMarkerPosition(newLocation);
-        });
-      }
-      
-      setMapLoaded(true);
-    }
-  };
-  
-  const setMarkerPosition = (location: {lat: number, lng: number}) => {
-    if (markerRef.current && window.google) {
-      markerRef.current.setPosition(location);
-      setCoordinates(location);
-      getAddressFromCoordinates(location);
-    }
-  };
-  
-  const getAddressFromCoordinates = (location: {lat: number, lng: number}) => {
-    if (geocoderRef.current) {
-      geocoderRef.current.geocode({ location }, (results: any, status: any) => {
-        if (status === 'OK' && results[0]) {
-          setLocationName(results[0].formatted_address);
-          setFormData(prev => ({ ...prev, location: results[0].formatted_address }));
-        } else {
-          const coordStr = `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`;
-          setLocationName(coordStr);
-          setFormData(prev => ({ ...prev, location: coordStr }));
-        }
-      });
-    }
-  };
 
   const { data: event } = useQuery({
     queryKey: ['edit-event', id],
@@ -189,54 +71,12 @@ const EditEvent = () => {
         organization_contact: event.organization_contact,
         category: event.category || ''
       });
-
-      if (event.location_lat && event.location_lng) {
-        const eventCoords = {
-          lat: event.location_lat,
-          lng: event.location_lng
-        };
-        setCoordinates(eventCoords);
-        
-        if (mapInstanceRef.current && markerRef.current) {
-          mapInstanceRef.current.setCenter(eventCoords);
-          setMarkerPosition(eventCoords);
-        }
-      }
-      
-      setLocationName(event.location || '');
     }
   }, [event]);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImageFile(e.target.files[0]);
-    }
-  };
-
-  const getCurrentLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setCoordinates(location);
-          setUseCurrentLocation(true);
-          
-          if (mapInstanceRef.current && markerRef.current) {
-            mapInstanceRef.current.setCenter(location);
-            setMarkerPosition(location);
-          }
-          
-          toast.success("Location obtained successfully!");
-        },
-        (error) => {
-          toast.error("Error getting location: " + error.message);
-        }
-      );
-    } else {
-      toast.error("Geolocation is not supported by your browser");
     }
   };
 
@@ -249,6 +89,7 @@ const EditEvent = () => {
     setDeleteLoading(true);
 
     try {
+      // First, delete all registrations for this event
       const { data: registrations, error: regError } = await supabase
         .from('registrations')
         .select('id')
@@ -265,6 +106,7 @@ const EditEvent = () => {
         if (deleteRegError) throw deleteRegError;
       }
 
+      // Then delete the event itself
       const { error } = await supabase
         .from('events')
         .delete()
@@ -273,10 +115,12 @@ const EditEvent = () => {
 
       if (error) throw error;
 
+      // Invalidate all relevant queries to update UI across the app
       await queryClient.invalidateQueries({ queryKey: ['events'] });
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
-      await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
+      await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
+      await queryClient.invalidateQueries({ queryKey: ['organization-registrations'] });
 
       toast.success("Event deleted successfully!");
       navigate("/organization/dashboard");
@@ -320,8 +164,8 @@ const EditEvent = () => {
         date: formData.date,
         time: formData.time,
         location: formData.location,
-        location_lat: coordinates?.lat || null,
-        location_lng: coordinates?.lng || null,
+        location_lat: null,
+        location_lng: null,
         volunteers_needed: parseInt(formData.volunteers_needed.toString(), 10),
         requirements: formData.requirements || null,
         image_url: imageUrl,
@@ -337,10 +181,12 @@ const EditEvent = () => {
 
       if (error) throw error;
 
+      // Invalidate all relevant queries to update UI across the app
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
       await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
       await queryClient.invalidateQueries({ queryKey: ['events'] });
+      await queryClient.invalidateQueries({ queryKey: ['organization-registrations'] });
 
       toast.success("Event updated successfully!");
       navigate("/organization/dashboard");
@@ -428,41 +274,14 @@ const EditEvent = () => {
           </div>
           <div>
             <Label htmlFor="location">Location</Label>
-            <div className="flex gap-2 mb-2">
-              <div className="relative flex-grow">
-                <Input 
-                  id="location-search" 
-                  name="location"
-                  placeholder="Search for a location"
-                  required 
-                  value={locationName}
-                  onChange={(e) => {
-                    setLocationName(e.target.value);
-                    setFormData({...formData, location: e.target.value});
-                  }}
-                />
-                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-              </div>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={getCurrentLocation}
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                Current
-              </Button>
-            </div>
-            
-            <div 
-              ref={mapRef} 
-              className="w-full h-64 bg-gray-100 rounded-md mb-2 border border-gray-200"
-            ></div>
-            
-            {coordinates && (
-              <p className="text-sm text-gray-500">
-                Selected coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-              </p>
-            )}
+            <Input 
+              id="location" 
+              name="location"
+              placeholder="Enter event location"
+              required 
+              value={formData.location}
+              onChange={(e) => setFormData({...formData, location: e.target.value})}
+            />
           </div>
           <div>
             <Label htmlFor="volunteers">Number of Volunteers Needed</Label>

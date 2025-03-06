@@ -88,6 +88,29 @@ const Events = () => {
     };
   }, [queryClient]);
 
+  // Also listen for registration changes as they affect volunteer counts
+  useEffect(() => {
+    const channel = supabase
+      .channel('registrations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'registrations'
+        },
+        () => {
+          console.log("Registrations table changed, refreshing events data...");
+          queryClient.invalidateQueries({ queryKey: ['events'] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [queryClient]);
+
   // Improved filtering to handle null category values
   const filteredEvents = events.filter(event =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||

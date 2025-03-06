@@ -63,7 +63,6 @@ const EventDetailsPage = () => {
     enabled: !!user
   });
 
-  // Query to fetch volunteers who registered for this event with their additional details
   const { data: volunteers } = useQuery({
     queryKey: ['event-volunteers', id],
     queryFn: async () => {
@@ -91,7 +90,6 @@ const EventDetailsPage = () => {
     enabled: !!id && userProfile?.role === 'organization'
   });
 
-  // Check for 404 error or deleted event
   useEffect(() => {
     if (isError) {
       toast.error("Event not found or has been deleted");
@@ -107,7 +105,6 @@ const EventDetailsPage = () => {
     }
 
     try {
-      // Check if user is already registered
       const { data: existing, error: checkError } = await supabase
         .from('registrations')
         .select('id')
@@ -126,7 +123,6 @@ const EventDetailsPage = () => {
         return;
       }
 
-      // Navigate to registration page instead of direct registration
       navigate(`/events/${id}/register`);
     } catch (error: any) {
       toast.error(error.message);
@@ -139,7 +135,6 @@ const EventDetailsPage = () => {
     setIsDeleting(true);
 
     try {
-      // First, delete all registrations for this event
       const { error: registrationsError } = await supabase
         .from('registrations')
         .delete()
@@ -147,7 +142,6 @@ const EventDetailsPage = () => {
 
       if (registrationsError) throw registrationsError;
 
-      // Then delete the event itself
       const { error: eventError } = await supabase
         .from('events')
         .delete()
@@ -155,15 +149,14 @@ const EventDetailsPage = () => {
 
       if (eventError) throw eventError;
 
-      // Invalidate all relevant queries to update UI across the app
       await queryClient.invalidateQueries({ queryKey: ['events'] });
       await queryClient.invalidateQueries({ queryKey: ['event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
       await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
+      await queryClient.invalidateQueries({ queryKey: ['organization-registrations', user?.id] });
       
       toast.success("Event deleted successfully");
       
-      // Navigate back to the events page
       navigate('/events');
     } catch (error: any) {
       toast.error(`Failed to delete event: ${error.message}`);
@@ -184,7 +177,6 @@ const EventDetailsPage = () => {
     return null; // Will be handled by the useEffect above
   }
 
-  // Check if event is in the past
   const eventDate = new Date(event.date);
   const isEventPast = isPast(eventDate);
 
@@ -193,7 +185,6 @@ const EventDetailsPage = () => {
   const canRegister = !isOrganization && spotsRemaining > 0 && !isEventPast;
   const isOwner = user?.id === event.organization_id;
 
-  // If the event is in the past and user is not the owner, redirect to events page with a message
   if (isEventPast && !isOwner) {
     toast.error("This event has already passed");
     navigate('/events');

@@ -6,168 +6,20 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import { useNavigate } from "react-router-dom";
-import { useState, useEffect, useRef } from "react";
+import { useState, useRef } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
-import { MapPin, Upload, Search } from "lucide-react";
-
-declare global {
-  interface Window {
-    google: any;
-    initMap: () => void;
-  }
-}
+import { Upload } from "lucide-react";
 
 const CreateEvent = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [loading, setLoading] = useState(false);
   const [imageFile, setImageFile] = useState<File | null>(null);
-  const [useCurrentLocation, setUseCurrentLocation] = useState(false);
-  const [coordinates, setCoordinates] = useState<{lat: number, lng: number} | null>(null);
-  const [locationName, setLocationName] = useState("");
-  const [mapLoaded, setMapLoaded] = useState(false);
-  const mapRef = useRef<HTMLDivElement>(null);
-  const mapInstanceRef = useRef<any>(null);
-  const markerRef = useRef<any>(null);
-  const geocoderRef = useRef<any>(null);
-
-  useEffect(() => {
-    if (!window.google) {
-      const googleMapsScript = document.createElement('script');
-      googleMapsScript.src = `https://maps.googleapis.com/maps/api/js?key=AIzaSyOdOhoFdBnw3QOgUXp4qjRPT0tG1htpb-g&libraries=places&callback=initMap`;
-      googleMapsScript.async = true;
-      googleMapsScript.defer = true;
-      window.initMap = initializeMap;
-      document.head.appendChild(googleMapsScript);
-      
-      return () => {
-        window.google = undefined;
-        document.head.removeChild(googleMapsScript);
-      };
-    } else if (mapRef.current && !mapInstanceRef.current) {
-      initializeMap();
-    }
-  }, []);
-
-  const initializeMap = () => {
-    if (mapRef.current && window.google) {
-      const defaultLocation = { lat: 37.7749, lng: -122.4194 }; // Default to San Francisco
-      
-      const mapOptions = {
-        zoom: 13,
-        center: defaultLocation,
-        mapTypeControl: false,
-        streetViewControl: false,
-        fullscreenControl: false,
-      };
-      
-      mapInstanceRef.current = new window.google.maps.Map(mapRef.current, mapOptions);
-      geocoderRef.current = new window.google.maps.Geocoder();
-      
-      markerRef.current = new window.google.maps.Marker({
-        position: defaultLocation,
-        map: mapInstanceRef.current,
-        draggable: true,
-        animation: window.google.maps.Animation.DROP,
-      });
-      
-      window.google.maps.event.addListener(mapInstanceRef.current, 'click', (event: any) => {
-        const clickedLocation = {
-          lat: event.latLng.lat(),
-          lng: event.latLng.lng()
-        };
-        setMarkerPosition(clickedLocation);
-      });
-      
-      window.google.maps.event.addListener(markerRef.current, 'dragend', () => {
-        const position = markerRef.current.getPosition();
-        const markerLocation = {
-          lat: position.lat(),
-          lng: position.lng()
-        };
-        setCoordinates(markerLocation);
-        getAddressFromCoordinates(markerLocation);
-      });
-      
-      const input = document.getElementById('location-search') as HTMLInputElement;
-      const searchBox = new window.google.maps.places.SearchBox(input);
-      
-      mapInstanceRef.current.addListener('bounds_changed', () => {
-        searchBox.setBounds(mapInstanceRef.current.getBounds());
-      });
-      
-      searchBox.addListener('places_changed', () => {
-        const places = searchBox.getPlaces();
-        if (places.length === 0) return;
-        
-        const place = places[0];
-        if (!place.geometry || !place.geometry.location) return;
-        
-        mapInstanceRef.current.setCenter(place.geometry.location);
-        mapInstanceRef.current.setZoom(15);
-        
-        const newLocation = {
-          lat: place.geometry.location.lat(),
-          lng: place.geometry.location.lng()
-        };
-        setMarkerPosition(newLocation);
-      });
-      
-      setMapLoaded(true);
-    }
-  };
-  
-  const setMarkerPosition = (location: {lat: number, lng: number}) => {
-    if (markerRef.current && window.google) {
-      markerRef.current.setPosition(location);
-      setCoordinates(location);
-      getAddressFromCoordinates(location);
-    }
-  };
-  
-  const getAddressFromCoordinates = (location: {lat: number, lng: number}) => {
-    if (geocoderRef.current) {
-      geocoderRef.current.geocode({ location }, (results: any, status: any) => {
-        if (status === 'OK' && results[0]) {
-          setLocationName(results[0].formatted_address);
-        } else {
-          setLocationName(`${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`);
-        }
-      });
-    }
-  };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       setImageFile(e.target.files[0]);
-    }
-  };
-
-  const getCurrentLocation = () => {
-    if ("geolocation" in navigator) {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const location = {
-            lat: position.coords.latitude,
-            lng: position.coords.longitude,
-          };
-          setCoordinates(location);
-          setUseCurrentLocation(true);
-          
-          if (mapInstanceRef.current && markerRef.current) {
-            mapInstanceRef.current.setCenter(location);
-            setMarkerPosition(location);
-          }
-          
-          toast.success("Location obtained successfully!");
-        },
-        (error) => {
-          toast.error("Error getting location: " + error.message);
-        }
-      );
-    } else {
-      toast.error("Geolocation is not supported by your browser");
     }
   };
 
@@ -200,16 +52,14 @@ const CreateEvent = () => {
         imageUrl = publicUrl;
       }
 
-      const finalLocation = locationName || (coordinates ? `${coordinates.lat}, ${coordinates.lng}` : String(formData.get('location')));
-
       const eventData = {
         title: String(formData.get('title')),
         description: String(formData.get('description')),
         date: String(formData.get('date')),
         time: String(formData.get('time')),
-        location: finalLocation,
-        location_lat: coordinates?.lat || null,
-        location_lng: coordinates?.lng || null,
+        location: String(formData.get('location')),
+        location_lat: null,
+        location_lng: null,
         volunteers_needed: parseInt(String(formData.get('volunteers')), 10),
         requirements: formData.get('requirements') ? String(formData.get('requirements')) : null,
         image_url: imageUrl,
@@ -280,38 +130,12 @@ const CreateEvent = () => {
           
           <div>
             <Label htmlFor="location">Location</Label>
-            <div className="flex gap-2 mb-2">
-              <div className="relative flex-grow">
-                <Input 
-                  id="location-search" 
-                  name="location"
-                  placeholder="Search for a location"
-                  required 
-                  value={locationName}
-                  onChange={(e) => setLocationName(e.target.value)}
-                />
-                <Search className="absolute right-3 top-3 h-4 w-4 text-gray-400" />
-              </div>
-              <Button 
-                type="button" 
-                variant="outline" 
-                onClick={getCurrentLocation}
-              >
-                <MapPin className="w-4 h-4 mr-2" />
-                Current
-              </Button>
-            </div>
-            
-            <div 
-              ref={mapRef} 
-              className="w-full h-64 bg-gray-100 rounded-md mb-2 border border-gray-200"
-            ></div>
-            
-            {coordinates && (
-              <p className="text-sm text-gray-500">
-                Selected coordinates: {coordinates.lat.toFixed(6)}, {coordinates.lng.toFixed(6)}
-              </p>
-            )}
+            <Input 
+              id="location" 
+              name="location"
+              placeholder="Enter event location" 
+              required 
+            />
           </div>
           
           <div>
