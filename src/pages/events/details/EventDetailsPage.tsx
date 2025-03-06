@@ -135,15 +135,12 @@ const EventDetailsPage = () => {
     setIsDeleting(true);
 
     try {
-      const { error: registrationsError } = await supabase
+      const { error: regError } = await supabase
         .from('registrations')
         .delete()
         .eq('event_id', id);
 
-      if (registrationsError) {
-        console.error("Error deleting registrations:", registrationsError);
-        throw registrationsError;
-      }
+      if (regError) throw regError;
 
       const { error: eventError } = await supabase
         .from('events')
@@ -151,10 +148,7 @@ const EventDetailsPage = () => {
         .eq('id', id)
         .eq('organization_id', user.id);
 
-      if (eventError) {
-        console.error("Error deleting event:", eventError);
-        throw eventError;
-      }
+      if (eventError) throw eventError;
 
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['events'] }),

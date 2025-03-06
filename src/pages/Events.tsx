@@ -67,12 +67,13 @@ const Events = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*', // Listen for all changes (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'events'
         },
         (payload) => {
           console.log("Events table changed:", payload);
+          // Immediately invalidate the events query to refresh the list
           queryClient.invalidateQueries({ queryKey: ['events'] });
         }
       )
@@ -89,12 +90,13 @@ const Events = () => {
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*', // Listen for all changes (INSERT, UPDATE, DELETE)
           schema: 'public',
           table: 'registrations'
         },
         (payload) => {
           console.log("Registrations table changed:", payload);
+          // Immediately invalidate the events query to refresh volunteer counts
           queryClient.invalidateQueries({ queryKey: ['events'] });
         }
       )

@@ -97,7 +97,7 @@ const OrganizationDashboard = () => {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen for ALL changes
+          event: '*', // Listen for ALL changes including DELETE
           schema: 'public',
           table: 'registrations',
           filter: `event_id=in.(${eventIds})`
