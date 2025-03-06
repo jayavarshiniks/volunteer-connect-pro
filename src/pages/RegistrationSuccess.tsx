@@ -16,6 +16,7 @@ const RegistrationSuccess = () => {
   const [qrValue, setQrValue] = useState("");
   const pageRef = useRef<HTMLDivElement>(null);
   const qrCodeRef = useRef<HTMLDivElement>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   // If no registration data is available, redirect to events page
   useEffect(() => {
@@ -42,46 +43,59 @@ const RegistrationSuccess = () => {
   const handleDownloadPage = async () => {
     if (!pageRef.current) return;
     
+    setIsDownloading(true);
+    
     try {
       // Use a longer delay to ensure QR code is fully rendered
       setTimeout(async () => {
-        // First ensure the QR code is rendered properly
-        if (qrCodeRef.current) {
-          const qrCanvas = await html2canvas(qrCodeRef.current, {
-            scale: 3,
+        try {
+          // Apply specific styling to ensure QR code visibility during capture
+          if (qrCodeRef.current) {
+            qrCodeRef.current.style.padding = "16px";
+            qrCodeRef.current.style.backgroundColor = "white";
+            qrCodeRef.current.style.display = "inline-block";
+          }
+          
+          // Render the full page with enhanced settings
+          const canvas = await html2canvas(pageRef.current, {
+            scale: 3, // Higher quality
             logging: false,
             useCORS: true,
             allowTaint: true,
-            backgroundColor: 'white'
+            imageTimeout: 5000, // Longer timeout to ensure QR code renders
+            backgroundColor: 'white',
+            onclone: (clonedDoc) => {
+              // Find the QR code in the cloned document and ensure it's visible
+              const clonedQrCode = clonedDoc.getElementById('registration-qr');
+              if (clonedQrCode) {
+                clonedQrCode.style.backgroundColor = "white";
+                clonedQrCode.style.padding = "16px";
+                clonedQrCode.style.display = "inline-block";
+              }
+            }
           });
-          console.log("QR code captured", qrCanvas);
+          
+          const imgData = canvas.toDataURL('image/png');
+          const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'px',
+            format: [canvas.width, canvas.height]
+          });
+          
+          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
+          
+          const eventName = registrationData.eventTitle || 'Event';
+          const fileName = `registration-${eventName}-${registrationData.registrationId}.pdf`;
+          pdf.save(fileName);
+        } catch (error) {
+          console.error('Error generating PDF:', error);
+        } finally {
+          setIsDownloading(false);
         }
-        
-        // Then render the full page
-        const canvas = await html2canvas(pageRef.current, {
-          scale: 2, // Higher quality
-          logging: false,
-          useCORS: true,
-          allowTaint: true,
-          imageTimeout: 3000, // Longer timeout to ensure QR code renders
-          backgroundColor: 'white'
-        });
-        
-        const imgData = canvas.toDataURL('image/png');
-        const pdf = new jsPDF({
-          orientation: 'portrait',
-          unit: 'px',
-          format: [canvas.width, canvas.height]
-        });
-        
-        pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-        
-        const eventName = registrationData.eventTitle || 'Event';
-        const fileName = `registration-${eventName}-${registrationData.registrationId}.pdf`;
-        pdf.save(fileName);
-      }, 500); // Longer delay to ensure rendering
+      }, 1000); // Longer delay to ensure rendering
     } catch (error) {
-      console.error('Error generating PDF:', error);
+      console.error('Error in download process:', error);
+      setIsDownloading(false);
     }
   };
 
@@ -139,6 +153,8 @@ const RegistrationSuccess = () => {
               size={200}
               level="H"
               includeMargin={true}
+              bgColor={"#FFFFFF"}
+              fgColor={"#000000"}
             />
           </div>
         </div>
@@ -147,8 +163,12 @@ const RegistrationSuccess = () => {
           <Link to={`/events/${registrationData.eventId}`}>
             <Button variant="outline">Back to Event</Button>
           </Link>
-          <Button onClick={handleDownloadPage}>
-            <Download className="mr-2 h-4 w-4" /> Download
+          <Button 
+            onClick={handleDownloadPage} 
+            disabled={isDownloading}
+          >
+            <Download className="mr-2 h-4 w-4" /> 
+            {isDownloading ? "Processing..." : "Download"}
           </Button>
         </div>
       </Card>
