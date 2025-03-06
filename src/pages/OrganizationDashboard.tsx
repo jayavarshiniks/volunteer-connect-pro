@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
@@ -36,7 +35,6 @@ const OrganizationDashboard = () => {
     enabled: !!user
   });
 
-  // Fetch registrations for all events
   const { data: registrations } = useQuery({
     queryKey: ['organization-registrations', user?.id],
     queryFn: async () => {
@@ -64,7 +62,6 @@ const OrganizationDashboard = () => {
     enabled: !!events && events.length > 0
   });
 
-  // Setup real-time updates for events
   useEffect(() => {
     if (!user) return;
 
@@ -73,14 +70,13 @@ const OrganizationDashboard = () => {
       .on(
         'postgres_changes',
         {
-          event: '*', // Listen for all changes
+          event: '*', // Listen for ALL changes including DELETE
           schema: 'public',
           table: 'events',
           filter: `organization_id=eq.${user.id}`
         },
-        () => {
-          // Refresh events data when changes occur
-          console.log("Events changed, refreshing data");
+        (payload) => {
+          console.log("Events changed, refreshing data:", payload);
           queryClient.invalidateQueries({ queryKey: ['organization-events', user?.id] });
         }
       )
@@ -91,22 +87,23 @@ const OrganizationDashboard = () => {
     };
   }, [user, queryClient]);
 
-  // Also listen for registration changes
   useEffect(() => {
     if (!user || !events || events.length === 0) return;
 
+    const eventIds = events.map(e => e.id).join(',');
+    
     const channel = supabase
       .channel('registrations-changes')
       .on(
         'postgres_changes',
         {
-          event: '*',
+          event: '*', // Listen for ALL changes
           schema: 'public',
           table: 'registrations',
-          filter: `event_id=in.(${events.map(e => e.id).join(',')})`
+          filter: `event_id=in.(${eventIds})`
         },
-        () => {
-          console.log("Registration changes detected, refreshing data");
+        (payload) => {
+          console.log("Registration changes detected, refreshing data:", payload);
           queryClient.invalidateQueries({ queryKey: ['organization-registrations', user?.id] });
           queryClient.invalidateQueries({ queryKey: ['organization-events', user?.id] });
         }
@@ -173,7 +170,6 @@ const OrganizationDashboard = () => {
         </Card>
       </div>
 
-      {/* Add the volunteer analytics component */}
       {registrations && registrations.length > 0 && events && (
         <div className="mb-8">
           <VolunteerAnalytics 
@@ -235,7 +231,6 @@ const OrganizationDashboard = () => {
                     </div>
                   </div>
                   
-                  {/* Volunteer registrations */}
                   {eventRegistrations.length > 0 && (
                     <div className="mt-4 pt-4 border-t">
                       <div className="flex items-center mb-2">

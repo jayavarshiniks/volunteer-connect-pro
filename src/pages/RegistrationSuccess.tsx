@@ -3,11 +3,10 @@ import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate, Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { CheckCircle, Download } from "lucide-react";
+import { CheckCircle, Printer } from "lucide-react";
 import { format } from "date-fns";
 import { QRCodeSVG } from "qrcode.react";
-import html2canvas from "html2canvas";
-import jsPDF from "jspdf";
+import { toast } from "sonner";
 
 const RegistrationSuccess = () => {
   const location = useLocation();
@@ -15,8 +14,7 @@ const RegistrationSuccess = () => {
   const registrationData = location.state?.registrationData;
   const [qrValue, setQrValue] = useState("");
   const pageRef = useRef<HTMLDivElement>(null);
-  const qrCodeRef = useRef<HTMLDivElement>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [isPrinting, setIsPrinting] = useState(false);
 
   // If no registration data is available, redirect to events page
   useEffect(() => {
@@ -39,63 +37,50 @@ const RegistrationSuccess = () => {
     }
   }, [registrationData, navigate]);
 
-  // Function to download the entire page as PDF
-  const handleDownloadPage = async () => {
+  // Function to print the page
+  const handlePrint = () => {
     if (!pageRef.current) return;
     
-    setIsDownloading(true);
+    setIsPrinting(true);
     
     try {
-      // Use a longer delay to ensure QR code is fully rendered
-      setTimeout(async () => {
-        try {
-          // Apply specific styling to ensure QR code visibility during capture
-          if (qrCodeRef.current) {
-            qrCodeRef.current.style.padding = "16px";
-            qrCodeRef.current.style.backgroundColor = "white";
-            qrCodeRef.current.style.display = "inline-block";
+      // Style for printing
+      const printStyles = document.createElement('style');
+      printStyles.textContent = `
+        @media print {
+          body * {
+            visibility: hidden;
           }
-          
-          // Render the full page with enhanced settings
-          const canvas = await html2canvas(pageRef.current, {
-            scale: 3, // Higher quality
-            logging: false,
-            useCORS: true,
-            allowTaint: true,
-            imageTimeout: 5000, // Longer timeout to ensure QR code renders
-            backgroundColor: 'white',
-            onclone: (clonedDoc) => {
-              // Find the QR code in the cloned document and ensure it's visible
-              const clonedQrCode = clonedDoc.getElementById('registration-qr');
-              if (clonedQrCode) {
-                clonedQrCode.style.backgroundColor = "white";
-                clonedQrCode.style.padding = "16px";
-                clonedQrCode.style.display = "inline-block";
-              }
-            }
-          });
-          
-          const imgData = canvas.toDataURL('image/png');
-          const pdf = new jsPDF({
-            orientation: 'portrait',
-            unit: 'px',
-            format: [canvas.width, canvas.height]
-          });
-          
-          pdf.addImage(imgData, 'PNG', 0, 0, canvas.width, canvas.height);
-          
-          const eventName = registrationData.eventTitle || 'Event';
-          const fileName = `registration-${eventName}-${registrationData.registrationId}.pdf`;
-          pdf.save(fileName);
-        } catch (error) {
-          console.error('Error generating PDF:', error);
-        } finally {
-          setIsDownloading(false);
+          #print-section, #print-section * {
+            visibility: visible;
+          }
+          #print-section {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+          }
+          #registration-qr {
+            background-color: white !important;
+            padding: 16px !important;
+            display: inline-block !important;
+          }
         }
-      }, 1000); // Longer delay to ensure rendering
+      `;
+      document.head.appendChild(printStyles);
+      
+      // Print the page
+      window.print();
+      
+      // Clean up
+      setTimeout(() => {
+        document.head.removeChild(printStyles);
+        setIsPrinting(false);
+      }, 1000);
     } catch (error) {
-      console.error('Error in download process:', error);
-      setIsDownloading(false);
+      console.error('Error printing:', error);
+      toast.error('Failed to print. Please try again.');
+      setIsPrinting(false);
     }
   };
 
@@ -109,7 +94,7 @@ const RegistrationSuccess = () => {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <Card className="max-w-2xl mx-auto p-8" ref={pageRef}>
+      <Card className="max-w-2xl mx-auto p-8" ref={pageRef} id="print-section">
         <div className="text-center mb-6">
           <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-4" />
           <h1 className="text-3xl font-bold text-green-700">Registration Successful!</h1>
@@ -137,7 +122,7 @@ const RegistrationSuccess = () => {
           </div>
         </div>
 
-        {/* QR Code Section */}
+        {/* QR Code Section with white background to ensure visibility */}
         <div className="bg-white border border-gray-200 p-6 rounded-lg mb-6 text-center">
           <h2 className="text-xl font-semibold mb-4">Your Registration QR Code</h2>
           <p className="text-gray-600 mb-4">
@@ -145,8 +130,8 @@ const RegistrationSuccess = () => {
           </p>
           <div 
             id="registration-qr" 
-            ref={qrCodeRef}
             className="mx-auto bg-white p-4 rounded-lg shadow-sm inline-block"
+            style={{ backgroundColor: 'white' }} // Ensure white background for QR code
           >
             <QRCodeSVG
               value={qrValue}
@@ -164,11 +149,11 @@ const RegistrationSuccess = () => {
             <Button variant="outline">Back to Event</Button>
           </Link>
           <Button 
-            onClick={handleDownloadPage} 
-            disabled={isDownloading}
+            onClick={handlePrint} 
+            disabled={isPrinting}
           >
-            <Download className="mr-2 h-4 w-4" /> 
-            {isDownloading ? "Processing..." : "Download"}
+            <Printer className="mr-2 h-4 w-4" /> 
+            {isPrinting ? "Printing..." : "Print"}
           </Button>
         </div>
       </Card>

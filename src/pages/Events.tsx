@@ -1,4 +1,3 @@
-
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -35,14 +34,12 @@ const Events = () => {
     enabled: !!user
   });
 
-  // Updated query to ensure we're fetching the most recent events and filtering out full events
   const { data: events = [], isLoading } = useQuery({
     queryKey: ['events'],
     queryFn: async () => {
       console.log("Fetching events...");
       const today = new Date().toISOString().split('T')[0]; // Get today's date in YYYY-MM-DD format
       
-      // Get all events that haven't happened yet
       const { data, error } = await supabase
         .from('events')
         .select('*')
@@ -54,7 +51,6 @@ const Events = () => {
         throw error;
       }
       
-      // Filter out events that are already full (volunteers_needed <= current_volunteers)
       const availableEvents = data.filter(event => 
         event.volunteers_needed > event.current_volunteers
       );
@@ -65,7 +61,6 @@ const Events = () => {
     }
   });
 
-  // Set up real-time updates for events
   useEffect(() => {
     const channel = supabase
       .channel('events-changes')
@@ -76,8 +71,8 @@ const Events = () => {
           schema: 'public',
           table: 'events'
         },
-        () => {
-          console.log("Events table changed, refreshing data...");
+        (payload) => {
+          console.log("Events table changed:", payload);
           queryClient.invalidateQueries({ queryKey: ['events'] });
         }
       )
@@ -88,7 +83,6 @@ const Events = () => {
     };
   }, [queryClient]);
 
-  // Also listen for registration changes as they affect volunteer counts
   useEffect(() => {
     const channel = supabase
       .channel('registrations-changes')
@@ -99,8 +93,8 @@ const Events = () => {
           schema: 'public',
           table: 'registrations'
         },
-        () => {
-          console.log("Registrations table changed, refreshing events data...");
+        (payload) => {
+          console.log("Registrations table changed:", payload);
           queryClient.invalidateQueries({ queryKey: ['events'] });
         }
       )
@@ -111,7 +105,6 @@ const Events = () => {
     };
   }, [queryClient]);
 
-  // Improved filtering to handle null category values
   const filteredEvents = events.filter(event =>
     event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
     event.location.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -123,7 +116,6 @@ const Events = () => {
   };
 
   useEffect(() => {
-    // If there are events, show a toast to let the user know that events have been loaded
     if (events.length > 0 && !isLoading) {
       toast.success(`${events.length} volunteer events available!`);
     }
@@ -151,7 +143,6 @@ const Events = () => {
   }
 
   const isAdmin = userProfile?.role === 'organization';
-  // Extract unique categories, filtering out null values
   const uniqueCategories = Array.from(
     new Set(events.map(event => event.category).filter(Boolean))
   );
@@ -174,7 +165,6 @@ const Events = () => {
           />
         </div>
 
-        {/* Category filters - only show if we have categories */}
         {uniqueCategories.length > 0 && (
           <div className="flex flex-wrap gap-2">
             <Button 
@@ -197,10 +187,8 @@ const Events = () => {
           </div>
         )}
 
-        {/* AI-powered recommendations based on search query */}
         {searchQuery && <EventRecommendations interests={searchQuery} />}
 
-        {/* Developer tools for seeding events - only visible to organizations */}
         {isAdmin && <DevEventSeeder />}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

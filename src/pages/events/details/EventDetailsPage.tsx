@@ -140,25 +140,35 @@ const EventDetailsPage = () => {
         .delete()
         .eq('event_id', id);
 
-      if (registrationsError) throw registrationsError;
+      if (registrationsError) {
+        console.error("Error deleting registrations:", registrationsError);
+        throw registrationsError;
+      }
 
       const { error: eventError } = await supabase
         .from('events')
         .delete()
-        .eq('id', id);
+        .eq('id', id)
+        .eq('organization_id', user.id);
 
-      if (eventError) throw eventError;
+      if (eventError) {
+        console.error("Error deleting event:", eventError);
+        throw eventError;
+      }
 
-      await queryClient.invalidateQueries({ queryKey: ['events'] });
-      await queryClient.invalidateQueries({ queryKey: ['event', id] });
-      await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
-      await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
-      await queryClient.invalidateQueries({ queryKey: ['organization-registrations', user?.id] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['events'] }),
+        queryClient.invalidateQueries({ queryKey: ['event', id] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-events'] }),
+        queryClient.invalidateQueries({ queryKey: ['edit-event', id] }),
+        queryClient.invalidateQueries({ queryKey: ['organization-registrations'] })
+      ]);
       
       toast.success("Event deleted successfully");
       
       navigate('/events');
     } catch (error: any) {
+      console.error("Delete event error:", error);
       toast.error(`Failed to delete event: ${error.message}`);
     } finally {
       setIsDeleting(false);
