@@ -274,6 +274,8 @@ const EditEvent = () => {
       if (error) throw error;
 
       await queryClient.invalidateQueries({ queryKey: ['events'] });
+      await queryClient.invalidateQueries({ queryKey: ['event', id] });
+      await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
       await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
 
       toast.success("Event deleted successfully!");

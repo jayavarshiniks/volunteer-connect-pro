@@ -15,6 +15,7 @@ const RegistrationSuccess = () => {
   const registrationData = location.state?.registrationData;
   const [qrValue, setQrValue] = useState("");
   const pageRef = useRef<HTMLDivElement>(null);
+  const qrCodeRef = useRef<HTMLDivElement>(null);
 
   // If no registration data is available, redirect to events page
   useEffect(() => {
@@ -42,14 +43,28 @@ const RegistrationSuccess = () => {
     if (!pageRef.current) return;
     
     try {
-      // Use a slight delay to ensure QR code is fully rendered
+      // Use a longer delay to ensure QR code is fully rendered
       setTimeout(async () => {
+        // First ensure the QR code is rendered properly
+        if (qrCodeRef.current) {
+          const qrCanvas = await html2canvas(qrCodeRef.current, {
+            scale: 3,
+            logging: false,
+            useCORS: true,
+            allowTaint: true,
+            backgroundColor: 'white'
+          });
+          console.log("QR code captured", qrCanvas);
+        }
+        
+        // Then render the full page
         const canvas = await html2canvas(pageRef.current, {
           scale: 2, // Higher quality
           logging: false,
           useCORS: true,
           allowTaint: true,
-          imageTimeout: 2000 // Longer timeout to ensure QR code renders
+          imageTimeout: 3000, // Longer timeout to ensure QR code renders
+          backgroundColor: 'white'
         });
         
         const imgData = canvas.toDataURL('image/png');
@@ -64,7 +79,7 @@ const RegistrationSuccess = () => {
         const eventName = registrationData.eventTitle || 'Event';
         const fileName = `registration-${eventName}-${registrationData.registrationId}.pdf`;
         pdf.save(fileName);
-      }, 300); // Small delay to ensure rendering
+      }, 500); // Longer delay to ensure rendering
     } catch (error) {
       console.error('Error generating PDF:', error);
     }
@@ -116,6 +131,7 @@ const RegistrationSuccess = () => {
           </p>
           <div 
             id="registration-qr" 
+            ref={qrCodeRef}
             className="mx-auto bg-white p-4 rounded-lg shadow-sm inline-block"
           >
             <QRCodeSVG
@@ -132,7 +148,7 @@ const RegistrationSuccess = () => {
             <Button variant="outline">Back to Event</Button>
           </Link>
           <Button onClick={handleDownloadPage}>
-            <Download className="mr-2 h-4 w-4" /> Download Registration Page
+            <Download className="mr-2 h-4 w-4" /> Download
           </Button>
         </div>
       </Card>

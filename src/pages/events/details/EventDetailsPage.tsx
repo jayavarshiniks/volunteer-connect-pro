@@ -1,4 +1,3 @@
-
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -7,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { toast } from "sonner";
 import { isPast } from "date-fns";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -30,6 +29,7 @@ const EventDetailsPage = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const queryClient = useQueryClient();
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const { data: event, isLoading, isError, error } = useQuery({
     queryKey: ['event', id],
@@ -135,6 +135,8 @@ const EventDetailsPage = () => {
 
   const handleDeleteEvent = async () => {
     if (!user || !id) return;
+    
+    setIsDeleting(true);
 
     try {
       // First, delete all registrations for this event
@@ -154,9 +156,10 @@ const EventDetailsPage = () => {
       if (eventError) throw eventError;
 
       // Invalidate all relevant queries to update UI across the app
-      queryClient.invalidateQueries({ queryKey: ['events'] });
-      queryClient.invalidateQueries({ queryKey: ['event', id] });
-      queryClient.invalidateQueries({ queryKey: ['organization-events'] });
+      await queryClient.invalidateQueries({ queryKey: ['events'] });
+      await queryClient.invalidateQueries({ queryKey: ['event', id] });
+      await queryClient.invalidateQueries({ queryKey: ['organization-events'] });
+      await queryClient.invalidateQueries({ queryKey: ['edit-event', id] });
       
       toast.success("Event deleted successfully");
       
@@ -164,6 +167,8 @@ const EventDetailsPage = () => {
       navigate('/events');
     } catch (error: any) {
       toast.error(`Failed to delete event: ${error.message}`);
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -199,7 +204,7 @@ const EventDetailsPage = () => {
     <div className="container mx-auto px-4 py-8">
       <Button 
         variant="ghost" 
-        onClick={handleBackToEvents}
+        onClick={() => navigate('/events')}
         className="mb-4"
       >
         ← Back to Events
@@ -268,8 +273,11 @@ const EventDetailsPage = () => {
                   </AlertDialogHeader>
                   <AlertDialogFooter>
                     <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={handleDeleteEvent}>
-                      Delete
+                    <AlertDialogAction 
+                      onClick={handleDeleteEvent}
+                      disabled={isDeleting}
+                    >
+                      {isDeleting ? "Deleting..." : "Delete"}
                     </AlertDialogAction>
                   </AlertDialogFooter>
                 </AlertDialogContent>
