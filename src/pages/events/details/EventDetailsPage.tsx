@@ -66,7 +66,8 @@ const EventDetailsPage = () => {
   const { data: volunteers } = useQuery({
     queryKey: ['event-volunteers', id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      // First get registrations with profile data
+      const { data: registrationsData, error: registrationsError } = await supabase
         .from('registrations')
         .select(`
           id,
@@ -83,9 +84,35 @@ const EventDetailsPage = () => {
         `)
         .eq('event_id', id);
 
-      if (error) throw error;
-      console.log("Fetched volunteers:", data);
-      return data;
+      if (registrationsError) throw registrationsError;
+      
+      // Get user emails from auth.users via a server function or maintain a cached copy
+      // For each registration, we'll need to fetch the user email separately
+      // This is a simplification - in a real app, you might want to use a more efficient approach
+      
+      const volunteersWithEmail = await Promise.all(
+        registrationsData.map(async (registration) => {
+          try {
+            // This uses the user's auth data which we already have
+            const { data: userEmails } = await supabase.auth.admin.listUsers({
+              filter: {
+                id: registration.user_id
+              }
+            });
+
+            return {
+              ...registration,
+              user_email: userEmails?.users?.[0]?.email || null
+            };
+          } catch (error) {
+            console.error("Error fetching user email:", error);
+            return registration;
+          }
+        })
+      );
+
+      console.log("Fetched volunteers with emails:", volunteersWithEmail);
+      return volunteersWithEmail;
     },
     enabled: !!id && userProfile?.role === 'organization'
   });
@@ -96,6 +123,68 @@ const EventDetailsPage = () => {
       navigate('/events');
     }
   }, [isError, navigate]);
+
+  // Setup real-time listener for event changes
+  useEffect(() => {
+    if (!id) return;
+    
+    const channel = supabase
+      .channel('event-details-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events',
+          filter: `id=eq.${id}`
+        },
+        (payload) => {
+          console.log("Event details changed:", payload);
+          
+          // If the event was deleted, navigate away
+          if (payload.eventType === 'DELETE') {
+            toast.error("This event has been deleted");
+            navigate('/events');
+            return;
+          }
+          
+          // Otherwise refresh the event data
+          queryClient.invalidateQueries({ queryKey: ['event', id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient, navigate]);
+
+  // Setup real-time listener for registrations
+  useEffect(() => {
+    if (!id || userProfile?.role !== 'organization') return;
+    
+    const channel = supabase
+      .channel('event-registrations-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'registrations',
+          filter: `event_id=eq.${id}`
+        },
+        (payload) => {
+          console.log("Event registrations changed:", payload);
+          queryClient.invalidateQueries({ queryKey: ['event-volunteers', id] });
+          queryClient.invalidateQueries({ queryKey: ['event', id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient, userProfile?.role]);
 
   const handleRegister = async () => {
     if (!user) {
@@ -135,6 +224,7 @@ const EventDetailsPage = () => {
     setIsDeleting(true);
 
     try {
+      // First, delete all registrations for this event
       const { error: regError } = await supabase
         .from('registrations')
         .delete()
@@ -142,6 +232,7 @@ const EventDetailsPage = () => {
 
       if (regError) throw regError;
 
+      // Then delete the event itself
       const { error: eventError } = await supabase
         .from('events')
         .delete()
@@ -150,6 +241,7 @@ const EventDetailsPage = () => {
 
       if (eventError) throw eventError;
 
+      // Invalidate all relevant queries
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: ['events'] }),
         queryClient.invalidateQueries({ queryKey: ['event', id] }),

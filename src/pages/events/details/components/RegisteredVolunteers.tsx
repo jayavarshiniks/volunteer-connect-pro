@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { format } from 'date-fns';
-import { Users, Phone, AlertCircle, UtensilsCrossed } from 'lucide-react';
+import { Users, Phone, AlertCircle, UtensilsCrossed, Mail } from 'lucide-react';
 
 interface Volunteer {
   id: string;
@@ -15,6 +15,7 @@ interface Volunteer {
     phone: string | null;
     profile_image_url: string | null;
   } | null;
+  user_email?: string;  // Added email field
 }
 
 interface RegisteredVolunteersProps {
@@ -43,14 +44,22 @@ const RegisteredVolunteers: React.FC<RegisteredVolunteersProps> = ({ volunteers 
                     <Users size={18} />
                   )}
                 </div>
-                <div>
+                <div className="flex-1">
                   <p className="font-medium">{registration.profiles?.full_name || 'Anonymous Volunteer'}</p>
-                  <div className="flex items-center text-sm text-gray-500">
-                    <Phone size={14} className="mr-1" />
-                    {registration.profiles?.phone || 'No phone provided'}
+                  <div className="flex flex-col text-sm text-gray-500">
+                    <div className="flex items-center">
+                      <Phone size={14} className="mr-1" />
+                      {registration.profiles?.phone || 'No phone provided'}
+                    </div>
+                    {registration.user_email && (
+                      <div className="flex items-center">
+                        <Mail size={14} className="mr-1" />
+                        {registration.user_email}
+                      </div>
+                    )}
                   </div>
                 </div>
-                <div className="text-xs text-gray-500 ml-auto">
+                <div className="text-xs text-gray-500">
                   Registered {format(new Date(registration.registration_time), 'MMM d, yyyy')}
                 </div>
               </div>

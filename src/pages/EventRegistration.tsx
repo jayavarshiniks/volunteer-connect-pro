@@ -91,6 +91,41 @@ const EventRegistration = () => {
     }
   }, [event, eventLoading, id, navigate, user]);
 
+  // Set up real-time listener for event changes
+  useEffect(() => {
+    if (!id) return;
+    
+    const channel = supabase
+      .channel('registration-event-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'events',
+          filter: `id=eq.${id}`
+        },
+        (payload) => {
+          console.log("Event changed during registration:", payload);
+          
+          // If the event was deleted, navigate away
+          if (payload.eventType === 'DELETE') {
+            toast.error("This event has been deleted");
+            navigate('/events');
+            return;
+          }
+          
+          // Refresh event data to check if it's now full
+          queryClient.invalidateQueries({ queryKey: ['event', id] });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [id, queryClient, navigate]);
+
   const handleConfirmRegistration = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user || !event) return;

@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -61,9 +62,10 @@ const Events = () => {
     }
   });
 
+  // Real-time listener for changes to the events table
   useEffect(() => {
     const channel = supabase
-      .channel('events-changes')
+      .channel('events-list-changes')
       .on(
         'postgres_changes',
         {
@@ -73,8 +75,24 @@ const Events = () => {
         },
         (payload) => {
           console.log("Events table changed:", payload);
-          // Immediately invalidate the events query to refresh the list
-          queryClient.invalidateQueries({ queryKey: ['events'] });
+          
+          // If an event was deleted, we need to refresh the list
+          if (payload.eventType === 'DELETE') {
+            queryClient.invalidateQueries({ queryKey: ['events'] });
+            return;
+          }
+          
+          // For inserts and updates, we want to check if the current_volunteers count has changed
+          if (payload.eventType === 'UPDATE' && 
+              payload.new && payload.old &&
+              payload.new.current_volunteers !== payload.old.current_volunteers) {
+            queryClient.invalidateQueries({ queryKey: ['events'] });
+          }
+          
+          // For new events
+          if (payload.eventType === 'INSERT') {
+            queryClient.invalidateQueries({ queryKey: ['events'] });
+          }
         }
       )
       .subscribe();
@@ -84,9 +102,10 @@ const Events = () => {
     };
   }, [queryClient]);
 
+  // Real-time listener for changes to the registrations table
   useEffect(() => {
     const channel = supabase
-      .channel('registrations-changes')
+      .channel('registrations-list-changes')
       .on(
         'postgres_changes',
         {
