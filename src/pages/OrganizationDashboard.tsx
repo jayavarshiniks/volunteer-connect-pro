@@ -1,3 +1,4 @@
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Link, useNavigate } from "react-router-dom";
@@ -38,6 +39,8 @@ const OrganizationDashboard = () => {
   const { data: registrations } = useQuery({
     queryKey: ['organization-registrations', user?.id],
     queryFn: async () => {
+      if (!events || events.length === 0) return [];
+    
       const { data, error } = await supabase
         .from('registrations')
         .select(`
@@ -54,10 +57,36 @@ const OrganizationDashboard = () => {
             profile_image_url
           )
         `)
-        .in('event_id', events?.map(event => event.id) || []);
+        .in('event_id', events.map(event => event.id));
 
       if (error) throw error;
-      return data;
+      
+      // Now fetch user emails separately
+      const userIds = data.map(reg => reg.user_id).filter(Boolean);
+      
+      if (userIds.length === 0) return data;
+      
+      const { data: userEmailsData, error: emailError } = await supabase
+        .from('profiles')
+        .select('id, user_email: auth.users!id.email')
+        .in('id', userIds);
+      
+      if (emailError) {
+        console.error("Error fetching user emails:", emailError);
+        return data;
+      }
+      
+      // Create email lookup map
+      const emailMap = {};
+      userEmailsData.forEach(user => {
+        emailMap[user.id] = user.user_email;
+      });
+      
+      // Add emails to registrations
+      return data.map(reg => ({
+        ...reg,
+        user_email: reg.user_id ? emailMap[reg.user_id] : null
+      }));
     },
     enabled: !!events && events.length > 0
   });
@@ -90,7 +119,9 @@ const OrganizationDashboard = () => {
   useEffect(() => {
     if (!user || !events || events.length === 0) return;
 
-    const eventIds = events.map(e => e.id).join(',');
+    const eventIds = events.map(e => e.id);
+    
+    if (eventIds.length === 0) return;
     
     const channel = supabase
       .channel('registrations-changes')
@@ -100,7 +131,7 @@ const OrganizationDashboard = () => {
           event: '*', // Listen for ALL changes including DELETE
           schema: 'public',
           table: 'registrations',
-          filter: `event_id=in.(${eventIds})`
+          filter: `event_id=in.(${eventIds.join(',')})`
         },
         (payload) => {
           console.log("Registration changes detected, refreshing data:", payload);
@@ -238,7 +269,7 @@ const OrganizationDashboard = () => {
                         <h4 className="font-medium">Registered Volunteers</h4>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {eventRegistrations.map((reg) => (
+                        {eventRegistrations.slice(0, 8).map((reg) => (
                           <TooltipProvider key={reg.id}>
                             <Tooltip>
                               <TooltipTrigger asChild>
@@ -258,6 +289,9 @@ const OrganizationDashboard = () => {
                               </TooltipTrigger>
                               <TooltipContent>
                                 <p>{reg.profiles?.full_name || 'Anonymous'}</p>
+                                {reg.user_email && (
+                                  <p className="text-xs">{reg.user_email}</p>
+                                )}
                                 {reg.profiles?.phone && (
                                   <p className="text-xs">{reg.profiles.phone}</p>
                                 )}

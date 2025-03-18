@@ -1,3 +1,4 @@
+
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
@@ -66,7 +67,7 @@ const EventDetailsPage = () => {
   const { data: volunteers } = useQuery({
     queryKey: ['event-volunteers', id],
     queryFn: async () => {
-      // First get registrations with profile data
+      // Get registrations with user data
       const { data: registrationsData, error: registrationsError } = await supabase
         .from('registrations')
         .select(`
@@ -86,32 +87,33 @@ const EventDetailsPage = () => {
 
       if (registrationsError) throw registrationsError;
       
-      // Get user emails from auth.users via a server function or maintain a cached copy
-      // For each registration, we'll need to fetch the user email separately
-      // This is a simplification - in a real app, you might want to use a more efficient approach
+      // Get user emails through a separate query
+      const userIds = registrationsData.map(reg => reg.user_id);
       
-      const volunteersWithEmail = await Promise.all(
-        registrationsData.map(async (registration) => {
-          try {
-            // This uses the user's auth data which we already have
-            const { data: userEmails } = await supabase.auth.admin.listUsers({
-              filter: {
-                id: registration.user_id
-              }
-            });
+      // We'll make an efficient query to get all user emails at once
+      const { data: authUsers, error: authError } = await supabase
+        .from('profiles')
+        .select('id, user_email: auth.users!id.email')
+        .in('id', userIds);
+      
+      if (authError) {
+        console.error("Error fetching user emails:", authError);
+        // Continue even if we can't get emails
+        return registrationsData;
+      }
+      
+      // Create a map of user_id to email for quick lookup
+      const userEmailMap = authUsers.reduce((map, user) => {
+        map[user.id] = user.user_email;
+        return map;
+      }, {});
+      
+      // Combine the data
+      const volunteersWithEmail = registrationsData.map(reg => ({
+        ...reg,
+        user_email: userEmailMap[reg.user_id] || null
+      }));
 
-            return {
-              ...registration,
-              user_email: userEmails?.users?.[0]?.email || null
-            };
-          } catch (error) {
-            console.error("Error fetching user email:", error);
-            return registration;
-          }
-        })
-      );
-
-      console.log("Fetched volunteers with emails:", volunteersWithEmail);
       return volunteersWithEmail;
     },
     enabled: !!id && userProfile?.role === 'organization'

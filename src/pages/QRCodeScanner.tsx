@@ -1,65 +1,70 @@
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Scanner } from "@yudiel/react-qr-scanner";
-import { useNavigate } from "react-router-dom";
-import { toast } from "sonner";
+import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { Button } from '@/components/ui/button';
+import { Card } from '@/components/ui/card';
+import { Scanner } from '@yudiel/react-qr-scanner';
+import { toast } from 'sonner';
 
 const QRCodeScanner = () => {
-  const [result, setResult] = useState<string>("");
+  const [scannedData, setScannedData] = useState<string | null>(null);
+  const [scannedJson, setScannedJson] = useState<any>(null);
   const navigate = useNavigate();
 
-  const handleDecode = (result: string) => {
-    setResult(result);
-    
+  const handleScan = (data: string) => {
+    setScannedData(data);
     try {
-      // Check if result is a valid URL or event ID
-      if (result.includes("/events/")) {
-        const eventId = result.split("/events/")[1].split("?")[0];
-        if (eventId) {
-          toast.success("QR Code scanned successfully");
-          navigate(`/events/${eventId}`);
-        }
-      } else {
-        // If it's just an ID
-        toast.success("QR Code scanned successfully");
-        navigate(`/events/${result}`);
-      }
+      const jsonData = JSON.parse(data);
+      setScannedJson(jsonData);
+      toast.success("QR Code scanned successfully!");
     } catch (error) {
-      toast.error("Invalid QR Code");
-      console.error("Error parsing QR code:", error);
+      toast.error("Invalid QR Code format");
+      console.error("Error parsing QR data:", error);
     }
   };
 
   const handleError = (error: any) => {
-    console.error("QR scan error:", error);
-    toast.error("Error scanning QR code");
+    console.error("QR Scanner error:", error);
+    toast.error("Error scanning QR code: " + error.message);
+  };
+
+  const handleViewEvent = () => {
+    if (scannedJson && scannedJson.eventId) {
+      navigate(`/events/${scannedJson.eventId}`);
+    }
   };
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <h1 className="text-3xl font-bold mb-6">Scan Event QR Code</h1>
-      <Card className="p-6 max-w-md mx-auto">
-        <div className="mb-4">
-          <Scanner
-            onResult={(text) => handleDecode(text)}
+      <Card className="max-w-xl mx-auto p-6">
+        <h1 className="text-2xl font-bold mb-6">QR Code Scanner</h1>
+        <div className="mb-6">
+          <Scanner 
+            onScan={handleScan}
             onError={handleError}
-            constraints={{
-              facingMode: "environment"
-            }}
-            className="w-full aspect-square rounded-md overflow-hidden"
+            constraints={{ facingMode: "environment" }}
+            className="w-full h-64 bg-gray-100 rounded-md overflow-hidden"
           />
         </div>
-        {result && (
-          <div className="mb-4 p-4 bg-gray-100 rounded-md">
-            <p className="font-medium">Result:</p>
-            <p className="break-words">{result}</p>
+
+        {scannedData && (
+          <div className="mt-4 p-4 border rounded-md">
+            <h2 className="text-lg font-semibold mb-2">Scanned Information</h2>
+            {scannedJson && (
+              <div className="space-y-2">
+                <p><span className="font-medium">Name:</span> {scannedJson.name || 'Not provided'}</p>
+                <p><span className="font-medium">Event:</span> {scannedJson.eventTitle || 'Not provided'}</p>
+                <p><span className="font-medium">Registration ID:</span> {scannedJson.registrationId || 'Not provided'}</p>
+                
+                {scannedJson.eventId && (
+                  <Button onClick={handleViewEvent} className="mt-2">
+                    View Event Details
+                  </Button>
+                )}
+              </div>
+            )}
           </div>
         )}
-        <Button onClick={() => navigate(-1)} className="w-full">
-          Back
-        </Button>
       </Card>
     </div>
   );

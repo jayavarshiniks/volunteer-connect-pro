@@ -15,7 +15,7 @@ interface Volunteer {
     phone: string | null;
     profile_image_url: string | null;
   } | null;
-  user_email?: string;  // Added email field
+  user_email?: string;
 }
 
 interface RegisteredVolunteersProps {
